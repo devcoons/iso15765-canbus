@@ -197,7 +197,7 @@ static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt
 	switch (mode)
 	{
 	case N_ADM_EXTENDED:
-		n_pdu->dt[0] = n_pdu->n_ai.n_ta;
+		n_pdu->dt[0] = n_pdu->n_ai.n_ae;
 	case N_ADM_NORMAL:
 		*id = 0x80 
 			| n_pdu->n_ai.n_pr << 8 
@@ -271,7 +271,7 @@ static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uint8_t* d
 		n_pdu->n_ai.n_ta = (id & 0x38U) >> 3;
 		n_pdu->n_ai.n_sa = (id & 0x07U);
 		n_pdu->n_ai.n_tt = (id & 0x40U) >> 6 == 1 ? N_TA_T_PHY : N_TA_T_FUNC;
-		n_pdu->n_ai.n_ta = dt[0];	
+		n_pdu->n_ai.n_ae = dt[0];	
 		break;
 	default:
 		return N_UNE_PDU;

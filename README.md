@@ -1,5 +1,5 @@
 # ISO15765-2 CANBus TP 
-![C/C++ CI](https://github.com/devcoons/iso15765-canbus/workflows/C/C++%20CI/badge.svg) 
+![C/C++ CI](https://github.com/devcoons/iso15765-canbus/workflows/C/C++%20CI/badge.svg)  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/5a80fc004df744e888729e512eec1fda)](https://www.codacy.com/manual/devcoons/iso15765-canbus?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=devcoons/iso15765-canbus&amp;utm_campaign=Badge_Grade)
 
 *Compiler flags: **-O3 -Wfatal-errors -Wall -std=c11***
 
@@ -8,10 +8,10 @@ An implementation of the **ISO15765-2 (ISO-TP)** protocol in a platform agnostic
 >This ISO defines common requirements for vehicle diagnostic systems implemented on a Controller Area Network (CAN) communication link, as specified in ISO 11898.
 >Although primarily intended for diagnostic systems, it also meets requirements from other CAN-based systems needing a network layer protocol.
 
-# How to use
+## How to use
 
-- Include the header file `iso15765_2.h`
-- Define an `iso15765_t` handler, create and attach the required shim/callbacks (`send_frame` `on_error` `get_ms`) of the handler
+-  Include the header file `iso15765_2.h`
+-  Define an `iso15765_t` handler, create and attach the required shim/callbacks (`send_frame` `on_error` `get_ms`) of the handler
 ```C
 /* Required shim/callback functions */
 static uint8_t send_frame(canbus_md md, uint32_t id, uint8_t dlc, uint8_t* data);
@@ -58,9 +58,9 @@ static uint32_t getms()
 }
 ```
 
-- In your main, first initialize the iso15765_t handler `iso15765_init(&handler);`
+-  In your main, first initialize the iso15765_t handler `iso15765_init(&handler);`
 
-- To send a message, create a `n_req_t` and use the function `iso15765_send`. For example:
+-  To send a message, create a `n_req_t` and use the function `iso15765_send`. For example:
 
 ```C
 n_req_t frame =
@@ -78,9 +78,9 @@ n_req_t frame =
 ...
 iso15765_send(&handler, &frame);
 ```
-- To push an incoming frame to the library use the function `iso15765_enqueue(&handler, &frame);`. It is suggested to put this function inside the frame reception callback of your interface
-- Use the `iso15765_process(&handler);` to allow the library to process the in/out streams of data. Normally you could put this function in a thread to run continuously.
-- As described before, any new/completed incoming message should be handled in the callback `static void usdata_indication(indn_t* info)`
+-  To push an incoming frame to the library use the function `iso15765_enqueue(&handler, &frame);`. It is suggested to put this function inside the frame reception callback of your interface
+-  Use the `iso15765_process(&handler);` to allow the library to process the in/out streams of data. Normally you could put this function in a thread to run continuously.
+-  As described before, any new/completed incoming message should be handled in the callback `static void usdata_indication(indn_t* info)`
 
 Below is a **complete loopback example**. The service send a message to itself by enqueing the transmitted frame in the inbound stream.
 
@@ -172,12 +172,12 @@ int main()
 
 Please check the folder **`exm`** for more examples
 
-### Development
+## Development
 
 This library is experimental and is still under development. The purpose is to create a complete ISO15765 library with all the described features. Feel free to suggest anything. If you use this library please ref.
 
-### Contributing
+## Contributing
 We would love you to contribute to `iso15765-canbus`, pull requests are welcome!
 
-### License
+## License
 This project is released under the MIT License
