@@ -1,4 +1,7 @@
 # ISO15765-2 CANBus TP 
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b91f404aadf9422d800894f78bb71bb0)](https://app.codacy.com/manual/devcoons/iso15765-canbus?utm_source=github.com&utm_medium=referral&utm_content=devcoons/iso15765-canbus&utm_campaign=Badge_Grade_Dashboard)
+
 ![C/C++ CI](https://github.com/devcoons/iso15765-canbus/workflows/C/C++%20CI/badge.svg) 
 
 *Compiler flags: **-O3 -Wfatal-errors -Wall -std=c11***
