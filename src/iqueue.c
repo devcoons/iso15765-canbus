@@ -90,9 +90,9 @@ I_Status_Queue iqueue_dequeue(iqueue_t* _queue, void* _element)
 volatile void* iqueue_dequeue_fast(iqueue_t* _queue)
 {
 	if (_queue->first == (void*)0)
-		return NULL;
+		return I_EMPTY;
 
-	void* x = (void*)_queue->first;
+	void* x = _queue->first;
 
 	_queue->first = (uint8_t*)_queue->first + _queue->element_size == (uint8_t*)_queue->storage + (_queue->element_size * _queue->max_elements)
 		? _queue->storage : (uint8_t*)_queue->first + _queue->element_size;

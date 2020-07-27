@@ -53,11 +53,11 @@ SOFTWARE.
 typedef enum
 {
 	N_ADM_UNKN	= 0x00,		/* Not defined */
-	N_ADM_NORMAL	= 0x01,		/* Normal Mode */
-	N_ADM_EXTENDED	= 0x02,		/* Extended Mode */
-	N_ADM_MIXED11	= 0x04,		/* Mixed 11bits ID Mode */
-	N_ADM_FIXED	= 0x10,		/* Fixed Mode */
-	N_ADM_MIXED29	= 0x20		/* Mixed 29bits ID Mode */
+	N_ADM_NORMAL	= 0x14,		/* Normal Mode */
+	N_ADM_FIXED     = 0x28,		/* Extended Mode */
+	N_ADM_MIXED11	= 0x35,		/* Mixed 11bits ID Mode */
+	N_ADM_EXTENDED  = 0x45,		/* Fixed Mode */
+	N_ADM_MIXED29	= 0x59		/* Mixed 29bits ID Mode */
 }addr_md;
 
 /* --- Protocol Control Information Type (ref: iso15765-2 p.17) ------------ */
@@ -163,8 +163,8 @@ typedef enum
 
 typedef enum
 {
-	CANBUS_STANDARD	= 0xF0U,	/* 11bits CAN Identifier */
-	CANBUS_EXTENDED	= 0x0FU		/* 29bits CAN Identifier */
+	CANBUS_STANDARD	= 0x04U,	/* 11bits CAN Identifier */
+	CANBUS_EXTENDED	= 0x08U		/* 29bits CAN Identifier */
 }canbus_md;
 
 /* --- dt I/O Stream Status (ref: iso15765-2 p.8) ------------------------ */

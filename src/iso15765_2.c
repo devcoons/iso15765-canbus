@@ -81,7 +81,7 @@ static pci_type n_out_frame_type(iso15765_t* instance)
 {
 	if (instance->out.cf_cnt != 0)
 		return N_PCI_T_CF;
-	if ((instance->addr_md & 0x18) != 0)
+	if ((instance->addr_md & 0x01) == 0)
 		return instance->out.msg_sz <= 6 ? N_PCI_T_SF : N_PCI_T_FF;
 	return instance->out.msg_sz <= 7 ? N_PCI_T_SF : N_PCI_T_FF;
 }
@@ -94,7 +94,7 @@ static n_rslt n_pci_pack(addr_md mode,n_pdu_t* n_pdu, uint8_t* dt)
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
 
-	uint8_t offs = mode <= 2 ? 0 : 1;
+	uint8_t offs = (mode & 0x01);
 
 	switch (n_pdu->n_pci.pt)
 	{
@@ -133,23 +133,25 @@ static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
 
-	n_pdu->n_pci.pt = (dt[0] & 0xF0) >> 4;
+	uint8_t offs = (mode & 0x01);
+
+	n_pdu->n_pci.pt = (dt[0+ offs] & 0xF0) >> 4;
 
 	switch (n_pdu->n_pci.pt)
 	{
 	case N_PCI_T_SF:
-		n_pdu->n_pci.dl = (dt[0] & 0x0F);
+		n_pdu->n_pci.dl = (dt[0+ offs] & 0x0F);
 		break;
 	case N_PCI_T_CF:
-		n_pdu->n_pci.sn = (dt[0] & 0x0F);
+		n_pdu->n_pci.sn = (dt[0+ offs] & 0x0F);
 		break;
 	case N_PCI_T_FF:
-		n_pdu->n_pci.dl = (dt[0] & 0x0F) << 8 | dt[1];
+		n_pdu->n_pci.dl = (dt[0+ offs] & 0x0F) << 8 | dt[1];
 		break;
 	case N_PCI_T_FC:
-		n_pdu->n_pci.fs = dt[0] & 0x0F;
-		n_pdu->n_pci.bs = dt[1];
-		n_pdu->n_pci.st = dt[2];
+		n_pdu->n_pci.fs = dt[0+ offs] & 0x0F;
+		n_pdu->n_pci.bs = dt[1+ offs];
+		n_pdu->n_pci.st = dt[2+ offs];
 		break;
 	default:
 		return N_ERROR;
@@ -167,7 +169,7 @@ static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 	if (dt == NULL)
 		return N_ERROR;
 
-	uint8_t offs = (mode <= 2 ? 0 : 1) + (n_pdu->n_pci.pt & 0x01);
+	uint8_t offs = (mode & 0x01) + (n_pdu->n_pci.pt & 0x01);
 	memmove(&n_pdu->dt[1 + offs], dt, 7 - offs);
 	return N_OK;
 }
@@ -180,7 +182,7 @@ static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
 
-	uint8_t offs = (mode <= 2 ? 0 : 1) + (n_pdu->n_pci.pt & 0x01);
+	uint8_t offs = (mode & 0x01) + (n_pdu->n_pci.pt & 0x01);
 	memmove(n_pdu->dt, &dt[1 + offs], 7 - offs);
 	n_pdu->sz = 7 - offs;
 	return N_OK;
@@ -197,7 +199,7 @@ static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt
 	switch (mode)
 	{
 	case N_ADM_EXTENDED:
-		n_pdu->dt[0] = n_pdu->n_ai.n_ae;
+		n_pdu->dt[0] = n_pdu->n_ai.n_ta;
 	case N_ADM_NORMAL:
 		*id = 0x80 
 			| n_pdu->n_ai.n_pr << 8 
@@ -231,8 +233,8 @@ static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt
 		break;
 	}
 
-	uint8_t offs = mode <= 2 ? 0 : 1;
-	n_pci_pack(mode,n_pdu, &dt[offs]);
+	uint8_t offs = (mode & 0x01);
+	n_pci_pack(mode,n_pdu, dt);
 	return n_pdu_pack_dt(mode, n_pdu, dt);
 }
 
@@ -271,14 +273,14 @@ static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uint8_t* d
 		n_pdu->n_ai.n_ta = (id & 0x38U) >> 3;
 		n_pdu->n_ai.n_sa = (id & 0x07U);
 		n_pdu->n_ai.n_tt = (id & 0x40U) >> 6 == 1 ? N_TA_T_PHY : N_TA_T_FUNC;
-		n_pdu->n_ai.n_ae = dt[0];	
+		n_pdu->n_ai.n_ta = dt[0];	
 		break;
 	default:
 		return N_UNE_PDU;
 	}
 
-	uint8_t offs = mode <= 2 ? 0 : 1;
-	n_pci_unpack(mode,n_pdu, &dt[offs]);
+	uint8_t offs = (mode & 0x01);
+	n_pci_unpack(mode,n_pdu, dt);
 	n_pdu_unpack_dt(mode, n_pdu, dt);
 
 	return N_OK;
@@ -411,7 +413,8 @@ static inline n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
 	}
 
 	/* Copy all data, init the CFrames reception parameters and send a FC */	
-	memmove(ih->in.msg, ih->in.pdu.dt, ih->in.pdu.sz);
+	uint8_t offset = (ih->addr_md % 0x01);
+	memmove(ih->in.msg, &ih->in.pdu.dt[offset], ih->in.pdu.sz);
 	ih->in.msg_sz = ih->in.pdu.n_pci.dl;
 	ih->in.msg_pos = ih->in.pdu.sz;
 	ih->in.cf_cnt = 0;
@@ -435,8 +438,8 @@ static inline n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
 		ih->clbs.on_error(N_UNE_PDU);
 		signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.msg_sz, N_UNE_PDU);
 	}
-	
-	memmove(&ih->in.msg[0], ih->in.pdu.dt, ih->in.pdu.n_pci.dl);	
+	uint8_t offset = (ih->addr_md % 0x01);
+	memmove(&ih->in.msg[0], &ih->in.pdu.dt[offset], ih->in.pdu.n_pci.dl);	
 	ih->in.sts = N_S_IDLE;
 	signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.pdu.n_pci.dl, N_OK);
 	return N_OK;
@@ -470,7 +473,8 @@ static inline n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 	/* As long as everything is ok the we copy the frame data to the inbound
 	* stream buffer. Afterwards check if the message size is completed and 
 	* signal the user and afterwards reset the inboud stream */
-	memmove(&ih->in.msg[ih->in.msg_pos], ih->in.pdu.dt, ih->in.pdu.sz);
+	uint8_t offset = (ih->addr_md % 0x01);
+	memmove(&ih->in.msg[ih->in.msg_pos], &ih->in.pdu.dt[offset], ih->in.pdu.sz);
 	ih->in.msg_pos += ih->in.pdu.sz;
 
 	if (ih->in.msg_pos >= ih->in.msg_sz)
@@ -604,7 +608,7 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		* for a multi-frame reception */
 		ih->out.pdu.n_pci.dl = ih->out.msg_sz;
 		ih->out.wf_cnt = 0;
-		ih->out.msg_pos = (ih->addr_md & 0x18) != 0 ? 5 : 6;
+		ih->out.msg_pos = (ih->addr_md & 0x01) == 0 ? 6 : 5;
 		if (n_pdu_pack(ih->addr_md, &ih->out.pdu, &id, ih->out.msg) != N_OK)
 			goto iso15765_process_out_cfm;
 		ih->out.cf_cnt = 1;
@@ -628,7 +632,7 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		if (n_pdu_pack(ih->addr_md, &ih->out.pdu, &id, &ih->out.msg[ih->out.msg_pos]) != N_OK)
 			goto iso15765_process_out_cfm;
 		/* Increase the position which indicates the remaining data in the inbound buffer */
-		ih->out.msg_pos += (ih->addr_md & 0x18) != 0 ? 6 : 7;
+		ih->out.msg_pos += (ih->addr_md & 0x01) == 0 ? 7 : 6;
 
 		/* if after this frame we expect a Flow Control then assign the correct flag before the
 		* transmission to avoid any issues and start the timer */
@@ -675,8 +679,9 @@ n_rslt iso15765_init(iso15765_t* instance)
 
 	/* check if parameters have correct values */
 	if((instance->can_md != CANBUS_STANDARD && instance->can_md != CANBUS_EXTENDED)
-		       || instance->addr_md > N_ADM_MIXED29 || instance->addr_md < N_ADM_NORMAL
-						|| (instance->can_md & instance->addr_md) != 0)
+		   
+		|| (instance->can_md & instance->addr_md) == 0
+		)
 		return N_WRG_VALUE;
 
 	/* check if must-have functions are assigned */
