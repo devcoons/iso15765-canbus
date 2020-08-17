@@ -33,7 +33,6 @@ SOFTWARE.
 * Includes
 ******************************************************************************/
 
-#include "iqueue.h"
 #include "iso15765_2.h"
 
 /******************************************************************************
@@ -60,24 +59,28 @@ static n_chg_param_cfm_t sgn_chg_cfm;
  */
 static void indn(n_indn_t* info)
 {
+	UNUSED(info);
 }
 
 static void ff_indn(n_ff_indn_t* info)
 {
+	UNUSED(info);
 }
 
 static void cfm(n_cfm_t* info)
 {
+	UNUSED(info);
 }
 
 static void cfg_cfm(n_chg_param_cfm_t* info)
 {
+	UNUSED(info);
 }
 
 /*
  * Helper function to find which PCI_Type the outbound stream has to use
  */
-static pci_type n_out_frame_type(iso15765_t* instance)
+inline static pci_type n_out_frame_type(iso15765_t* instance)
 {
 	if (instance->out.cf_cnt != 0)
 		return N_PCI_T_CF;
@@ -89,7 +92,7 @@ static pci_type n_out_frame_type(iso15765_t* instance)
 /*
  * Convert partially the CANBus Frame from the PCI
  */
-static n_rslt n_pci_pack(addr_md mode,n_pdu_t* n_pdu, uint8_t* dt)
+inline static n_rslt n_pci_pack(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 {
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
@@ -99,23 +102,23 @@ static n_rslt n_pci_pack(addr_md mode,n_pdu_t* n_pdu, uint8_t* dt)
 	switch (n_pdu->n_pci.pt)
 	{
 	case N_PCI_T_SF:
-		n_pdu->dt[0+ offs] = (n_pdu->n_pci.pt) << 4 
-							   | n_pdu->n_pci.dl;
+		n_pdu->dt[0 + offs] = (n_pdu->n_pci.pt) << 4
+			| n_pdu->n_pci.dl;
 		break;
 	case N_PCI_T_CF:
-		n_pdu->dt[0+ offs] = (n_pdu->n_pci.pt) << 4 
-			                   | n_pdu->n_pci.sn;
+		n_pdu->dt[0 + offs] = (n_pdu->n_pci.pt) << 4
+			| n_pdu->n_pci.sn;
 		break;
 	case N_PCI_T_FF:
-		n_pdu->dt[0+ offs] = (n_pdu->n_pci.pt) << 4 
-			      | (n_pdu->n_pci.dl & 0x0F00) >> 8;
-		n_pdu->dt[1+ offs] = n_pdu->n_pci.dl & 0x00FF;
+		n_pdu->dt[0 + offs] = (n_pdu->n_pci.pt) << 4
+			| (n_pdu->n_pci.dl & 0x0F00) >> 8;
+		n_pdu->dt[1 + offs] = n_pdu->n_pci.dl & 0x00FF;
 		break;
 	case N_PCI_T_FC:
-		n_pdu->dt[0+ offs] = (n_pdu->n_pci.pt) << 4 
-			                   | n_pdu->n_pci.fs;
-		n_pdu->dt[1+ offs] = n_pdu->n_pci.bs;
-		n_pdu->dt[2+ offs] = n_pdu->n_pci.st;
+		n_pdu->dt[0 + offs] = (n_pdu->n_pci.pt) << 4
+			| n_pdu->n_pci.fs;
+		n_pdu->dt[1 + offs] = n_pdu->n_pci.bs;
+		n_pdu->dt[2 + offs] = n_pdu->n_pci.st;
 		break;
 	default:
 		return N_ERROR;
@@ -128,30 +131,30 @@ static n_rslt n_pci_pack(addr_md mode,n_pdu_t* n_pdu, uint8_t* dt)
 /*
  * Convert the PCI from the CANBus Frame
  */
-static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
+inline  static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 {
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
 
 	uint8_t offs = (mode & 0x01);
 
-	n_pdu->n_pci.pt = (dt[0+ offs] & 0xF0) >> 4;
+	n_pdu->n_pci.pt = (dt[0 + offs] & 0xF0) >> 4;
 
 	switch (n_pdu->n_pci.pt)
 	{
 	case N_PCI_T_SF:
-		n_pdu->n_pci.dl = (dt[0+ offs] & 0x0F);
+		n_pdu->n_pci.dl = (dt[0 + offs] & 0x0F);
 		break;
 	case N_PCI_T_CF:
-		n_pdu->n_pci.sn = (dt[0+ offs] & 0x0F);
+		n_pdu->n_pci.sn = (dt[0 + offs] & 0x0F);
 		break;
 	case N_PCI_T_FF:
-		n_pdu->n_pci.dl = (dt[0+ offs] & 0x0F) << 8 | dt[1];
+		n_pdu->n_pci.dl = (dt[0 + offs] & 0x0F) << 8 | dt[1+ offs];
 		break;
 	case N_PCI_T_FC:
-		n_pdu->n_pci.fs = dt[0+ offs] & 0x0F;
-		n_pdu->n_pci.bs = dt[1+ offs];
-		n_pdu->n_pci.st = dt[2+ offs];
+		n_pdu->n_pci.fs = dt[0 + offs] & 0x0F;
+		n_pdu->n_pci.bs = dt[1 + offs];
+		n_pdu->n_pci.st = dt[2 + offs];
 		break;
 	default:
 		return N_ERROR;
@@ -164,7 +167,7 @@ static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 /*
  * Helper function of 'n_pdu_pack' to use the frame payload.
  */
-static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
+inline static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 {
 	if (dt == NULL)
 		return N_ERROR;
@@ -177,7 +180,7 @@ static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 /*
  * Helper function of 'n_pdu_unpack' to use the frame payload.
  */
-static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
+inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 {
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
@@ -191,7 +194,7 @@ static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 /*
  * Convert CANBus frame from PDU
  */
-static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt)
+inline static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt)
 {
 	if (dt == NULL || id == NULL)
 		return N_ERROR;
@@ -201,31 +204,31 @@ static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt
 	case N_ADM_EXTENDED:
 		n_pdu->dt[0] = n_pdu->n_ai.n_ta;
 	case N_ADM_NORMAL:
-		*id = 0x80 
-			| n_pdu->n_ai.n_pr << 8 
-			| n_pdu->n_ai.n_ta << 3 
+		*id = 0x80
+			| n_pdu->n_ai.n_pr << 8
+			| n_pdu->n_ai.n_ta << 3
 			| n_pdu->n_ai.n_sa
-		    | (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0x40U : 0x00U);
+			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0x40U : 0x00U);
 		break;
 	case N_ADM_MIXED29:
-		*id = n_pdu->n_ai.n_pr << 26 
-			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0xCE : 0xCD)<< 16 
-			| n_pdu->n_ai.n_ta << 8 
+		*id = n_pdu->n_ai.n_pr << 26
+			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0xCE : 0xCD) << 16
+			| n_pdu->n_ai.n_ta << 8
 			| n_pdu->n_ai.n_sa;
 		n_pdu->dt[0] = n_pdu->n_ai.n_ae;
 		break;
 	case N_ADM_FIXED:
-		*id = n_pdu->n_ai.n_pr << 26 
-			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0xDA : 0xDB)<< 16 
-			| n_pdu->n_ai.n_ta << 8 
+		*id = n_pdu->n_ai.n_pr << 26
+			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0xDA : 0xDB) << 16
+			| n_pdu->n_ai.n_ta << 8
 			| n_pdu->n_ai.n_sa;
 		break;
 	case N_ADM_MIXED11:
-		*id = 0x80 
-			| n_pdu->n_ai.n_pr << 8 
-			| n_pdu->n_ai.n_ta << 3 
+		*id = 0x80
+			| n_pdu->n_ai.n_pr << 8
+			| n_pdu->n_ai.n_ta << 3
 			| n_pdu->n_ai.n_sa
-		    | (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0x40U : 0x00U);
+			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0x40U : 0x00U);
 		n_pdu->dt[0] = n_pdu->n_ai.n_ae;
 		break;
 	default:
@@ -233,15 +236,14 @@ static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt
 		break;
 	}
 
-	uint8_t offs = (mode & 0x01);
-	n_pci_pack(mode,n_pdu, dt);
+	n_pci_pack(mode, n_pdu, dt);
 	return n_pdu_pack_dt(mode, n_pdu, dt);
 }
 
 /*
  * Convert PDU from CANBus frame
  */
-static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uint8_t* dt)
+inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uint8_t* dt)
 {
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
@@ -273,14 +275,13 @@ static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uint8_t* d
 		n_pdu->n_ai.n_ta = (id & 0x38U) >> 3;
 		n_pdu->n_ai.n_sa = (id & 0x07U);
 		n_pdu->n_ai.n_tt = (id & 0x40U) >> 6 == 1 ? N_TA_T_PHY : N_TA_T_FUNC;
-		n_pdu->n_ai.n_ta = dt[0];	
+		n_pdu->n_ai.n_ta = dt[0];
 		break;
 	default:
 		return N_UNE_PDU;
 	}
 
-	uint8_t offs = (mode & 0x01);
-	n_pci_unpack(mode,n_pdu, dt);
+	n_pci_unpack(mode, n_pdu, dt);
 	n_pdu_unpack_dt(mode, n_pdu, dt);
 
 	return N_OK;
@@ -291,7 +292,7 @@ static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uint8_t* d
  * an event by using the appropriate callbacks. The function does not support
  * the N_CHG_P_CONF signal type.
  */
-inline static void signaling(signal_tp tp, n_iostream_t* strm, void (*cb)(void*), uint8_t msg_sz, n_rslt sgn_rslt)
+inline static void signaling(signal_tp tp, n_iostream_t* strm, void(*cb)(void*), uint16_t msg_sz, n_rslt sgn_rslt)
 {
 	if (cb == NULL)
 		return;
@@ -310,7 +311,7 @@ inline static void signaling(signal_tp tp, n_iostream_t* strm, void (*cb)(void*)
 		sgn_ff_indn.msg_sz = msg_sz;
 		memmove(&sgn_ff_indn.n_ai, &strm->pdu.n_ai, sizeof(n_ai_t));
 		memmove(&sgn_ff_indn.n_pci, &strm->pdu.n_pci, sizeof(n_pci_t));
-		strm->sts |= N_S_RX_BUSY;
+		strm->sts = (uint8_t)((uint32_t)strm->sts | (uint32_t)N_S_RX_BUSY);
 		cb(&sgn_ff_indn);
 		break;
 	case N_CONF:
@@ -322,14 +323,15 @@ inline static void signaling(signal_tp tp, n_iostream_t* strm, void (*cb)(void*)
 	default:
 		return;
 	}
+	return;
 }
 
 /*
  * Check if any timeout should be occured.
  */
-static n_rslt process_timeouts(iso15765_t* ih)
+inline static n_rslt process_timeouts(iso15765_t* ih)
 {
-	if (ih->out.sts != N_S_TX_WAIT_FC || ih->out.last_upd.n_bs == 0
+	if (ih->out.sts != N_S_TX_WAIT_FC || ih->out.last_upd.n_bs == 0 || ih->config.n_bs == 0
 		|| (ih->out.last_upd.n_bs + ih->config.n_bs) >= ih->clbs.get_ms())
 		return N_OK;
 
@@ -357,13 +359,13 @@ static n_rslt send_N_PCI_T_FC(iso15765_t* ih)
 	ih->fl_pdu.n_ai.n_pr = ih->in.pdu.n_ai.n_pr;
 	ih->fl_pdu.n_ai.n_tt = ih->in.pdu.n_ai.n_tt;
 	ih->in.cfg_bs = ih->config.bs;
-	
+
 	if (n_pdu_pack(ih->addr_md, &ih->fl_pdu, &id, ih->out.msg) != N_OK)
 	{
 		ih->out.sts = (ih->out.sts & (~N_S_TX_BUSY));
 		return N_ERROR;
 	}
-	
+
 	ih->clbs.send_frame(ih->addr_md, id, 8, ih->fl_pdu.dt);
 	ih->out.sts = (ih->out.sts & (~N_S_TX_BUSY));
 	return N_OK;
@@ -372,7 +374,7 @@ static n_rslt send_N_PCI_T_FC(iso15765_t* ih)
 /*
  * Helper function to set some basic stream parameters value
  */
-static inline void set_stream_data(n_iostream_t* ist, uint8_t cf, uint8_t wf, stream_sts sts)
+inline static void set_stream_data(n_iostream_t* ist, uint8_t cf, uint8_t wf, stream_sts sts)
 {
 	ist->cf_cnt = cf;
 	ist->wf_cnt = wf;
@@ -382,21 +384,21 @@ static inline void set_stream_data(n_iostream_t* ist, uint8_t cf, uint8_t wf, st
 /*
  * Check if current Wait Flow status counter reached the max WFS
  */
-static inline n_rslt check_max_wf_capacity(iso15765_t* ih)
+inline static n_rslt check_max_wf_capacity(iso15765_t* ih)
 {
 	if (ih->out.wf_cnt < ih->config.wf)
 		return N_OK;
-	
+
 	ih->clbs.on_error(N_WFT_OVRN);
 	set_stream_data(&ih->out, 0, 0, N_S_IDLE);
 	return N_WFT_OVRN;
 }
 
 /*
- * Process inbound First Frame reception and report to the upper layer using the 
+ * Process inbound First Frame reception and report to the upper layer using the
  * indication callback function.
  */
-static inline n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
 {
 	if (ih->in.msg_sz > I15765_MSG_SIZE)
 	{
@@ -412,7 +414,7 @@ static inline n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
 		signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.msg_sz, N_UNE_PDU);
 	}
 
-	/* Copy all data, init the CFrames reception parameters and send a FC */	
+	/* Copy all data, init the CFrames reception parameters and send a FC */
 	uint8_t offset = (ih->addr_md % 0x01);
 	memmove(ih->in.msg, &ih->in.pdu.dt[offset], ih->in.pdu.sz);
 	ih->in.msg_sz = ih->in.pdu.n_pci.dl;
@@ -425,10 +427,10 @@ static inline n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
 }
 
 /*
- * Process inbound Single Frame reception and report to the upper layer using the 
+ * Process inbound Single Frame reception and report to the upper layer using the
  * indication callback function.
  */
-static inline n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
 {
 	/* If reception is in progress: Terminate the current reception, report an
 	* N_USData.indication, with <N_Result> set to N_UNEXP_PDU, to the upper layer, and
@@ -439,7 +441,7 @@ static inline n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
 		signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.msg_sz, N_UNE_PDU);
 	}
 	uint8_t offset = (ih->addr_md % 0x01);
-	memmove(&ih->in.msg[0], &ih->in.pdu.dt[offset], ih->in.pdu.n_pci.dl);	
+	memmove(&ih->in.msg[0], &ih->in.pdu.dt[offset], ih->in.pdu.n_pci.dl);
 	ih->in.sts = N_S_IDLE;
 	signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.pdu.n_pci.dl, N_OK);
 	return N_OK;
@@ -450,11 +452,11 @@ static inline n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
  * to (ref: iso15765-2 p.26) and if everything is ok copy all the data to the
  * inbound stream buffer and update the reception parameters (CF_cnt,timeouts etc)
  */
-static inline n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 {
 	n_rslt rslt = N_OK;
 
-	/* According to (ref: iso15765-2 p.26) if we are not in progress of 
+	/* According to (ref: iso15765-2 p.26) if we are not in progress of
 	* reception we should ignore it */
 	if ((ih->in.sts & N_S_RX_BUSY) == 0)
 	{
@@ -471,7 +473,7 @@ static inline n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 	}
 
 	/* As long as everything is ok the we copy the frame data to the inbound
-	* stream buffer. Afterwards check if the message size is completed and 
+	* stream buffer. Afterwards check if the message size is completed and
 	* signal the user and afterwards reset the inboud stream */
 	uint8_t offset = (ih->addr_md % 0x01);
 	memmove(&ih->in.msg[ih->in.msg_pos], &ih->in.pdu.dt[offset], ih->in.pdu.sz);
@@ -482,11 +484,11 @@ static inline n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 		signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.msg_sz, N_OK);
 		memset(&ih->in, 0, sizeof(n_iostream_t));
 		ih->in.last_upd.n_cr = 0;
-	//	ih->in.sts = N_S_IDLE;
+		//	ih->in.sts = N_S_IDLE;
 		return N_UNE_PDU;
 	}
 	/* if we reach the max CF counter, then we send a FC frame */
-	if (ih->in.cf_cnt == ih->config.bs)
+	if (ih->in.cf_cnt == ih->config.bs && ih->config.bs != 0)
 		send_N_PCI_T_FC(ih);
 
 	/* Update the Cr timer */
@@ -500,18 +502,18 @@ in_cf_error:
 }
 
 /*
- * Process inbound Flow Control Frames. Outcome depends on the stream status 
+ * Process inbound Flow Control Frames. Outcome depends on the stream status
  * (if it is busy etc) as well as the Flow Control Status.
  */
-static inline n_rslt process_in_fc(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_fc(iso15765_t* ih, canbus_frame_t* frame)
 {
 	n_rslt rslt = N_UNE_PDU;
 
-	/* According to (ref: iso15765-2 p.26) if we are not expecting FC frame 
+	/* According to (ref: iso15765-2 p.26) if we are not expecting FC frame
 	* we should ignore it */
 	if (ih->out.sts != N_S_TX_WAIT_FC)
 		return rslt;
-	
+
 	switch (ih->in.pdu.n_pci.fs) {
 	case N_WAIT:
 		/* Increase the WF counter, check if we reached the WF Limit to abort
@@ -553,7 +555,7 @@ static inline n_rslt process_in_fc(iso15765_t* ih, canbus_frame_t* frame)
  * the 'iso15765_process' and performs any needed operation to identify and
  * consume the underlying information.
  */
-static n_rslt iso15765_process_in(iso15765_t* ih, canbus_frame_t* frame)
+inline static n_rslt iso15765_process_in(iso15765_t* ih, canbus_frame_t* frame)
 {
 	/* Converting the canbus frame to PDU format and process it by its PCI Type */
 	if (n_pdu_unpack(ih->addr_md, &ih->in.pdu, frame->id, frame->dt) == N_OK) {
@@ -655,11 +657,10 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 	return N_ERROR;
 
 iso15765_process_out_cfm:
-	ih->out.sts = N_S_IDLE;	
+	ih->out.sts = N_S_IDLE;
 	ih->out.cf_cnt = 0;
 	ih->out.wf_cnt = 0;
 	signaling(N_CONF, &ih->out, (void*)ih->clbs.cfm, 0, rslt);
-	
 	return rslt;
 }
 
@@ -670,7 +671,7 @@ iso15765_process_out_cfm:
 /*
  * Initialize and check if the configuration parameters of the ISO15765 handler are
  * correct. Not assigned callback which are not assigned will be automatically assigned
- * to the static UNUSED functions. If no error occurs, the system can start the service.  
+ * to the static UNUSED functions. If no error occurs, the system can start the service.
  */
 n_rslt iso15765_init(iso15765_t* instance)
 {
@@ -678,10 +679,8 @@ n_rslt iso15765_init(iso15765_t* instance)
 		return N_NULL;
 
 	/* check if parameters have correct values */
-	if((instance->can_md != CANBUS_STANDARD && instance->can_md != CANBUS_EXTENDED)
-		   
-		|| (instance->can_md & instance->addr_md) == 0
-		)
+	if ((instance->can_md != CANBUS_STANDARD && instance->can_md != CANBUS_EXTENDED)
+		|| (instance->can_md & instance->addr_md) == 0)
 		return N_WRG_VALUE;
 
 	/* check if must-have functions are assigned */
@@ -704,13 +703,13 @@ n_rslt iso15765_init(iso15765_t* instance)
 	/* clear the in/out streams */
 	memset(&instance->in, 0, sizeof(n_iostream_t));
 	memset(&instance->out, 0, sizeof(n_iostream_t));
-
+	memset(&instance->fl_pdu, 0, sizeof(n_pdu_t));
 	/* init the incoming canbus frame queue(buffer) */
-	iqueue_init(&instance->inqueue, 
-				I15765_QUEUE_ELMS, 
-				sizeof(canbus_frame_t), 
-				instance->inq_buf);
-	
+	iqueue_init(&instance->inqueue,
+		I15765_QUEUE_ELMS,
+		sizeof(canbus_frame_t),
+		instance->inq_buf);
+
 	return N_OK;
 }
 
@@ -722,7 +721,7 @@ n_rslt iso15765_init(iso15765_t* instance)
 n_rslt iso15765_enqueue(iso15765_t* instance, canbus_frame_t* frame)
 {
 	return iqueue_enqueue(&instance->inqueue, frame) == I_OK
-					? N_OK : N_BUFFER_OVFLW;
+		? N_OK : N_BUFFER_OVFLW;
 }
 
 /*
@@ -761,7 +760,7 @@ n_rslt iso15765_process(iso15765_t* instance)
 
 	/* Dequeue all the incoming frames and process them */
 	while (iqueue_dequeue(&instance->inqueue, &frame) != I_EMPTY)
-			rslt |= iso15765_process_in(instance, &frame);
+		rslt |= iso15765_process_in(instance, &frame);
 
 	/* Process the outbound stream */
 	rslt |= iso15765_process_out(instance);
