@@ -179,5 +179,9 @@ This library is experimental and is still under development. The purpose is to c
 ## Contributing
 We would love you to contribute to `iso15765-canbus`, pull requests are welcome!
 
+## Support
+
+Support me maintain this project https://paypal.me/iikem
+
 ## License
 This project is released under the MIT License
