@@ -103,14 +103,22 @@ static void print_frame(uint8_t instance,uint8_t tp_mode, canbus_md mode, uint32
                 int elements = dlc - s > 8 ? 8 : dlc - s;
 
                 for (int i = s; i < s+8; i++)
+		{
                         printf(i< s+elements? "%02x " : "   ", dt[i]);
+		}
                 printf("\t");
                 for (int i = s; i < s+elements; i++)
+		{
                         printf("%c ", dt[i]);
+		}
                 if (s+elements == dlc)
+		{
                         printf("\n");
+		}
                 else
-                        printf("\n     |\t\t\t\t\t\t\t\t\t\t\t\t\t"); 
+		{
+                        printf("\n     |\t\t\t\t\t\t\t\t\t\t\t\t\t");
+		}
         }
 
 }
@@ -147,11 +155,15 @@ static void indn1(n_indn_t* info)
         uint8_t s = 'X';
 
         if (info->msg_sz == frame2.msg_sz)
+	{
                 s = 'V';
-
+	}
+	
         if (memcmp(info->msg, frame2.msg, info->msg_sz) == 0)
+	{
                 v = 'V';
-
+	}
+	
         printf("\n- Reception of H1. Msg_sz:[%d] | SZ_CH[%c] MSG_CH[%c]\n",info->msg_sz,s,v);
    
         if (v != 'V' || s != 'V')
@@ -172,11 +184,15 @@ static void indn2(n_indn_t* info)
         uint8_t s = 'X';
 
         if (info->msg_sz == frame1.msg_sz)
+	{
                 s = 'V';
-
+	}
+	
         if (memcmp(info->msg, frame1.msg, info->msg_sz) == 0)
+	{
                 v = 'V';
-
+	}
+	
         printf("\n- Reception of H2. Msg_sz:[%d] | SZ_CH[%c] MSG_CH[%c]\n", info->msg_sz, s, v);
        
         if (v != 'V' || s != 'V')
@@ -203,6 +219,7 @@ int main()
 
         frame1.msg_sz = f_sz1;
         rand_string(frame1.msg, frame1.msg_sz);
+	
         f_sz1 = f_sz1 == 500 ? 0 : f_sz1 + 1;
 
         iso15765_send(&handler1, &frame1);
