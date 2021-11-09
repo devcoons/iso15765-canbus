@@ -35,7 +35,7 @@ static iso15765_t handler =
 					// is available or an error occured during the reception.
 };
 
-static uint8_t send_frame(canbus_md mode, uint32_t id, uint8_t dlc, uint8_t* data)
+static uint8_t send_frame(canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* data)
 {
     // Here transmit the frame through CANBus
     return 0;
@@ -70,6 +70,7 @@ n_req_t frame =
     .n_ai.n_ta = 0x02,		// Network Target Address
     .n_ai.n_ae = 0x00,		// Network Address Extension
     .n_ai.n_tt = N_TA_T_PHY,	// Network Target Address type
+    .ctp_ft = CTP_T_STD,	// CANFD or CANSTD
     .msg = {1,2,3,4,5,6,7,8,	// Message
     	    9,10,11,12,13,14,
 	    15,16,17,18,19,20},
@@ -122,6 +123,7 @@ n_req_t frame =
         .n_ai.n_sa = 0x01,
         .n_ai.n_ta = 0x02,
         .n_ai.n_ae = 0x00,
+	.ctp_ft = CTP_T_STD,
         .n_ai.n_tt = N_TA_T_PHY,
         .msg = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23},
         .msg_sz = 23,
@@ -136,12 +138,12 @@ static uint32_t getms()
         return GetTickCount();
 }
 
-static uint8_t send_frame(canbus_md mode, uint32_t id, uint8_t dlc, uint8_t* dt)
+static uint8_t send_frame(canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* data)
 {
         printf("%d  #1# - id:%x    dlc:%02x    ",GetTickCount(), id, dlc);
-        for (int i = 0; i < 8; i++) printf("%02x ", dt[i]);
+        for (int i = 0; i < 8; i++) printf("%02x ", data[i]);
         printf("\n");
-        canbus_frame_t frame = { .id = id, .dlc = 8, .mode = mode };
+        canbus_frame_t frame = { .id = id, .dlc = 8, .mode = mode, .ctp_ft = CTP_T_STD };
         memmove(frame.dt, dt, 8);
         iso15765_enqueue(&handler, &frame);
         return 0;

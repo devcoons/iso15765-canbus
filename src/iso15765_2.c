@@ -111,6 +111,36 @@ inline static uint8_t n_get_closest_can_dl(uint8_t size, ctp_type tmt)
 }
 
 /*
+ * Helper function to find the closest can_dl
+ */
+inline static uint8_t n_get_dt_offset(addr_md address, pci_type pci, uint16_t data_size)
+{
+	uint8_t offset = (address & 0x01);
+
+	switch (pci)
+	{
+	case N_PCI_T_SF:
+		offset += 1;
+		offset += data_size <= (8 - offset) ? 0 : 1;
+		break;
+	case N_PCI_T_FF:
+		offset += 2;
+		offset += data_size > 4095 ? 4 : 0;
+		break;
+	case N_PCI_T_CF:
+		offset += 1;
+		break;
+	case N_PCI_T_FC:
+		offset += 3;
+		break;
+	default:
+		offset = 0;
+		break;
+	}
+	return offset;
+}
+
+/*
  * Helper function to find which PCI_Type the outbound stream has to use
  */
 inline static pci_type n_out_frame_type(iso15765_t* instance)
@@ -118,7 +148,7 @@ inline static pci_type n_out_frame_type(iso15765_t* instance)
 	if (instance->out.cf_cnt != 0)
 		return N_PCI_T_CF;
 
-	if ((instance->addr_md & 0x01) == 0)
+	if ((instance->addr_md & 0x01) == 1)
 	{
 		if (instance->out.ctp_ft == CTP_T_STD)
 		{
@@ -155,7 +185,7 @@ inline static n_rslt n_pci_pack(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 	switch (n_pdu->n_pci.pt)
 	{
 	case N_PCI_T_SF:
-		if (n_pdu->n_pci.dl <= 7)
+		if (n_pdu->n_pci.dl <= (7- offs))
 		{
 			n_pdu->dt[0 + offs] = (n_pdu->n_pci.pt) << 4
 				| n_pdu->n_pci.dl;
@@ -237,22 +267,19 @@ inline static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 	if (dt == NULL)
 		return N_ERROR;
 
-	uint8_t offs = (mode & 0x01) + (n_pdu->n_pci.pt & 0x01);
-
 	switch (n_pdu->n_pci.pt)
 	{
 	case N_PCI_T_SF:
-		memmove(&n_pdu->dt[( (n_pdu->sz <= (7 - (mode & 0x01))) ? 1 : 2)], dt, n_pdu->sz);
+		memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_SF, n_pdu->sz)], dt, n_pdu->sz);
 		break;
 	case N_PCI_T_FF:
-		memmove(&n_pdu->dt[1+offs], dt, n_pdu->sz);
-
+		memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_FF, n_pdu->sz)], dt, n_pdu->sz);
 		break;
 	case N_PCI_T_CF:
-		memmove(&n_pdu->dt[1+offs], dt, n_pdu->sz);
+		memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_CF, n_pdu->sz)], dt, n_pdu->sz);
 		break;
 	case N_PCI_T_FC:
-		memmove(&n_pdu->dt[((n_pdu->sz <= (4 - (mode & 0x01))) ? 1 : 2) + offs], dt, n_pdu->sz);
+		memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_FC, n_pdu->sz)], dt, n_pdu->sz);
 
 		break;
 
@@ -260,7 +287,6 @@ inline static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 		break;
 	}
 
-	
 	return N_OK;
 }
 
@@ -272,21 +298,19 @@ inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 	if (n_pdu == NULL || dt == NULL)
 		return N_ERROR;
 
-	uint8_t offs = (mode & 0x01) + (n_pdu->n_pci.pt & 0x01);
-
 	switch (n_pdu->n_pci.pt)
 	{
 	case N_PCI_T_SF:
-		memmove(n_pdu->dt, &dt[((n_pdu->n_pci.dl <= (7 - (mode & 0x01))) ? 1 : 2)], n_pdu->n_pci.dl);
+		memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_SF, n_pdu->n_pci.dl)], n_pdu->n_pci.dl);
 		break;
 	case N_PCI_T_FF:
-		memmove(n_pdu->dt, &dt[1+offs], n_pdu->sz);
+		memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_FF, n_pdu->sz)], n_pdu->sz);
 		break;
 	case N_PCI_T_CF:
-		memmove(n_pdu->dt, &dt[1+offs], n_pdu->sz);
+		memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_CF, n_pdu->sz)], n_pdu->sz);
 		break;
 	case N_PCI_T_FC:
-		memmove(n_pdu->dt, &dt[offs], n_pdu->sz);
+		memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_FC, n_pdu->sz)], n_pdu->sz);
 		break;
 	default:
 		return N_ERROR;
@@ -545,8 +569,8 @@ static n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
 		ih->clbs.on_error(N_UNE_PDU);
 		signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.msg_sz, N_UNE_PDU);
 	}
-	uint8_t offset = (ih->addr_md % 0x01);
-	memmove(&ih->in.msg[0], &ih->in.pdu.dt[offset], ih->in.pdu.n_pci.dl);
+	uint8_t offset = (ih->addr_md & 0x01);
+	memmove(&ih->in.msg[0], &ih->in.pdu.dt[0], ih->in.pdu.n_pci.dl);
 	ih->in.sts = N_S_IDLE;
 	signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.pdu.n_pci.dl, N_OK);
 	return N_OK;
@@ -705,11 +729,15 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 	case N_PCI_T_SF:
 		/* Copy all the data of the SF to the outbound stream, pack and send the canbus frame */
 		ih->out.pdu.n_pci.dl = ih->out.msg_sz;
-		ih->out.pdu.sz = (uint8_t)ih->out.msg_sz;
+		ih->out.pdu.sz = ih->out.msg_sz;
+		if (ih->out.msg_sz == 7)
+		{
+			ih->out.msg_sz = 7;
+		}
 		if (n_pdu_pack(ih->addr_md, &ih->out.pdu, &id, ih->out.msg) != N_OK)
 			goto iso15765_process_out_cfm;
-		uint8_t of = (ih->out.pdu.n_pci.dl <= (7 - (ih->addr_md & 0x01))) ? 1 : 2;
-		rslt = ih->clbs.send_frame(ih->can_md, id, ih->out.ctp_ft, n_get_closest_can_dl(ih->out.pdu.sz + of,ih->out.ctp_ft), ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
+
+		rslt = ih->clbs.send_frame(ih->can_md, id, ih->out.ctp_ft, n_get_closest_can_dl(ih->out.pdu.sz + n_get_dt_offset(ih->addr_md, N_PCI_T_SF, ih->out.pdu.sz),ih->out.ctp_ft), ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
 		goto iso15765_process_out_cfm;
 		break;
 
@@ -727,7 +755,7 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		/* after this frame we expect a Flow Control then assign the correct flag before the
 		* transmission to avoid any issues and start the timer */
 		ih->out.sts = N_S_TX_WAIT_FC;
-		rslt = ih->clbs.send_frame(ih->can_md, id, ih->out.ctp_ft, n_get_closest_can_dl(ih->out.pdu.sz+(2- (ih->addr_md & 0x01)), ih->out.ctp_ft), ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
+		rslt = ih->clbs.send_frame(ih->can_md, id, ih->out.ctp_ft, ih->out.ctp_ft == CTP_T_STD ? 8 : 64, ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
 		ih->out.last_upd.n_bs = ih->clbs.get_ms();
 		return N_OK;
 
