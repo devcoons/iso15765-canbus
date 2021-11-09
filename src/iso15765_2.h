@@ -56,39 +56,47 @@ SOFTWARE.
 
 typedef enum
 {
-	N_ADM_UNKN = 0x00,		/* Not defined */
-	N_ADM_NORMAL = 0x14,		/* Normal Mode */
-	N_ADM_FIXED = 0x28,		/* Extended Mode */
-	N_ADM_MIXED11 = 0x35,		/* Mixed 11bits ID Mode */
-	N_ADM_EXTENDED = 0x45,		/* Fixed Mode */
-	N_ADM_MIXED29 = 0x59		/* Mixed 29bits ID Mode */
+	N_ADM_UNKN	= 0x00,		/* Not defined */
+	N_ADM_NORMAL	= 0x14,		/* Normal Mode */
+	N_ADM_FIXED	= 0x28,		/* Extended Mode */
+	N_ADM_MIXED11	= 0x35,		/* Mixed 11bits ID Mode */
+	N_ADM_EXTENDED	= 0x45,		/* Fixed Mode */
+	N_ADM_MIXED29	= 0x59		/* Mixed 29bits ID Mode */
 }addr_md;
+
+/* --- CANTP Mode - Frame Type (ref:                     ) ----------------- */
+
+typedef enum
+{
+	CTP_T_STD	= 0x01,		/* Standard CANBUS */
+	CTP_T_FD	= 0x02		/* FD CANBUS       */
+}ctp_type;
 
 /* --- Protocol Control Information Type (ref: iso15765-2 p.17) ------------ */
 
 typedef enum
 {
-	N_PCI_T_SF = 0x00U,		/* Single Frame */
-	N_PCI_T_FF = 0x01U,		/* First Frame */
-	N_PCI_T_CF = 0x02U,		/* Consecutive Frame */
-	N_PCI_T_FC = 0x03U,		/* Flow Control Frame */
-	N_PCI_T_UN = 0xFF		/* Unknown */
+	N_PCI_T_SF	= 0x00U,	/* Single Frame */
+	N_PCI_T_FF	= 0x01U,	/* First Frame */
+	N_PCI_T_CF	= 0x02U,	/* Consecutive Frame */
+	N_PCI_T_FC	= 0x03U,	/* Flow Control Frame */
+	N_PCI_T_UN	= 0xFF		/* Unknown */
 }pci_type;
 
 /* --- Network Target Address Type (ref: iso15765-2 p.9,29,30) ------------- */
 
 typedef enum
 {
-	N_TA_T_PHY = 0x01,		/* Physical */
-	N_TA_T_FUNC = 0x02		/* Functional */
+	N_TA_T_PHY	= 0x01,		/* Physical */
+	N_TA_T_FUNC	= 0x02		/* Functional */
 }ta_type;
 
 /* --- Message Type (ref: iso15765-2 p.8) ---------------------------------- */
 
 typedef enum
 {
-	N_MT_DIAG = 0x00,		/* Diagnostics */
-	N_MT_RDIAG = 0x01		/* Remote Diagnostics */
+	N_MT_DIAG	= 0x00,		/* Diagnostics */
+	N_MT_RDIAG	= 0x01		/* Remote Diagnostics */
 }mtype;
 
 /* --- FlowControl Parameters (ref: iso15765-2 p.--------------------------- */
@@ -205,9 +213,10 @@ typedef struct
 typedef struct 
 {
 	uint32_t id;		/* CAN Frame ID */
+	uint8_t type;		/* STD or FD */
 	uint32_t mode;		/* CAN Frame mode `canbus_md` */
 	uint16_t dlc;		/* Size of data */
-	uint8_t dt[8];		/* Actual data of the frame */
+	uint8_t dt[64];		/* Actual data of the frame */
 }canbus_frame_t;
 #endif
 
@@ -232,7 +241,7 @@ typedef struct
 	uint8_t sn;		/* SequenceNumber: specify the order of the consecutive frames */
 	uint8_t st;		/* SeparationTime: Requested separation time */
 	pci_type pt;		/* Type of the received pdu 'pci_type' */
-	uint16_t dl;		/* Frame data length (if 0 frame must be ignored) */
+	uint16_t dl;		/* PCI data length (if 0 frame must be ignored) */
 }n_pci_t;
 
 /* --- Protocol dt unit (ref: iso15765-2 p.) ------------------------------- */
@@ -240,10 +249,10 @@ typedef struct
 typedef struct  
 {
 	mtype n_mt;		/* Message Type */
-	uint8_t sz;		/* Actual data size */
+	uint16_t sz;		/* Actual data size */
 	n_ai_t n_ai;		/* Address information */
 	n_pci_t n_pci;		/* Protocol control information */
-	uint8_t dt[8];		/* Data Field */
+	uint8_t dt[64];		/* Data Field */
 } n_pdu_t;
 
 /* --- N_USdt.cfm (ref: iso15765-2 p.6) ------------------------------------ */
@@ -268,6 +277,7 @@ typedef struct
 
 typedef struct 
 {
+	ctp_type ctp_ft;		/* CANBus Frame type*/
 	n_ai_t n_ai;			/* Address information */
 	n_pci_t n_pci;			/* Protocol control information */
 	uint16_t msg_sz;		/* Message actual size */
@@ -278,6 +288,7 @@ typedef struct
 
 typedef struct 
 {
+	ctp_type ctp_ft;		/* CANBus Frame type*/
 	n_ai_t n_ai;			/* Address information */
 	n_pci_t n_pci;			/* Protocol control information */
 	n_rslt rslt;			/* Result of the reception */
@@ -334,13 +345,14 @@ typedef struct
 	void (*on_error)		(n_rslt);		/* Will be fired in any occured error. */
 	uint32_t(*get_ms)();					/* Time-source for the library in ms(required) */
 	uint8_t(*send_frame)		(canbus_md, uint32_t,	/* Callback to assing the Network Layer. This callback */
-					   uint8_t, uint8_t*);	/* will be fired when a transmission of a canbus frame is ready. */
+					uint8_t, uint8_t, uint8_t*);	/* will be fired when a transmission of a canbus frame is ready. */
 }n_callbacks_t;
 
 /* --- PDU Stream  --------------------------------------------------------- */
 
 typedef struct 
 {
+	ctp_type ctp_ft;		/* CANBus Frame type*/
 	n_pdu_t pdu;			/* Keep information about the in/out frame in a PDU format */
 	uint8_t cf_cnt;			/* Current block sequence number (ConsecutiveFrame) */
 	uint8_t wf_cnt;			/* Current received wait flow control frames */
