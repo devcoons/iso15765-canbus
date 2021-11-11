@@ -421,27 +421,27 @@ inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id,uint
 	case N_ADM_MIXED11:
 		n_pdu->n_ai.n_ae = dt[0];
 	case N_ADM_NORMAL:
-		n_pdu->n_ai.n_pr = (uint8_t)(id & 0x700U) >> 8;
-		n_pdu->n_ai.n_ta = (uint8_t)(id & 0x38U) >> 3;
+		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x700U) >> 8);
+		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x38U) >> 3);
 		n_pdu->n_ai.n_sa = (uint8_t)(id & 0x07U);
 		n_pdu->n_ai.n_tt = (uint8_t)(((id & 0x40U) >> 6) == 1 ? N_TA_T_PHY : N_TA_T_FUNC);
 		break;
 	case N_ADM_MIXED29:
 		n_pdu->n_ai.n_ae = dt[0];
-		n_pdu->n_ai.n_pr = (uint8_t)(id & 0x1C000000) >> 26;
+		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x1C000000) >> 26);
 		n_pdu->n_ai.n_tt = (uint8_t)(((id & 0x00FF0000) >> 16) == 0xCE ? N_TA_T_PHY : N_TA_T_FUNC);
-		n_pdu->n_ai.n_ta = (uint8_t)(id & 0x0000FF00) >> 8;
-		n_pdu->n_ai.n_sa = (uint8_t)(id & 0x000000FF) >> 0;
+		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x0000FF00) >> 8);
+		n_pdu->n_ai.n_sa = (uint8_t)((id & 0x000000FF) >> 0);
 		break;
 	case N_ADM_FIXED:
-		n_pdu->n_ai.n_pr = (uint8_t)(id & 0x1C000000) >> 26;
+		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x1C000000) >> 26);
 		n_pdu->n_ai.n_tt = (uint8_t)(((id & 0x00FF0000) >> 16) == 0xDA ? N_TA_T_PHY : N_TA_T_FUNC);
-		n_pdu->n_ai.n_ta = (uint8_t)(id & 0x0000FF00) >> 8;
-		n_pdu->n_ai.n_sa = (uint8_t)(id & 0x000000FF) >> 0;
+		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x0000FF00) >> 8);
+		n_pdu->n_ai.n_sa = (uint8_t)((id & 0x000000FF) >> 0);
 		break;
 	case N_ADM_EXTENDED:
-		n_pdu->n_ai.n_pr = (uint8_t)(id & 0x700U) >> 8;
-		n_pdu->n_ai.n_ta = (uint8_t)(id & 0x38U) >> 3;
+		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x700U) >> 8);
+		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x38U) >> 3);
 		n_pdu->n_ai.n_sa = (uint8_t)(id & 0x07U);
 		n_pdu->n_ai.n_tt = (uint8_t)((id & 0x40U) >> 6 == 1 ? N_TA_T_PHY : N_TA_T_FUNC);
 		n_pdu->n_ai.n_ae = dt[0];
