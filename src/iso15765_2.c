@@ -659,7 +659,7 @@ static n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 		return N_UNE_PDU;
 	}
 	/* if we reach the max CF counter, then we send a FC frame */
-	if (ih->in.cf_cnt == ih->config.bs && ih->config.bs != 0)
+	if (ih->in.cf_cnt % ih->config.bs == 0 && ih->config.bs != 0)
 	{
 		send_N_PCI_T_FC(ih);
 	}
