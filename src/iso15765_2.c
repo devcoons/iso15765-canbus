@@ -538,7 +538,7 @@ static n_rslt send_N_PCI_T_FC(iso15765_t* ih)
 		return N_ERROR;
 	}
 
-	ih->clbs.send_frame(ih->addr_md, id, ih->in.ctp_ft, 3, ih->fl_pdu.dt);
+	ih->clbs.send_frame(ih->addr_md, id, ih->in.ctp_ft, n_get_dt_offset(ih->addr_md, N_PCI_T_FC, ih->fl_pdu.sz), ih->fl_pdu.dt);
 	ih->out.sts = (ih->out.sts & (~N_S_TX_BUSY));
 	return N_OK;
 }
