@@ -9,8 +9,8 @@
 * Declaration | Static Functions
 ******************************************************************************/
 
-static uint8_t send_frame1(canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt);
-static uint8_t send_frame2(canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt);
+static uint8_t send_frame1(cbus_id_type id_type, uint32_t id, cbus_fr_format fr_fmt, uint8_t dlc, uint8_t* dt);
+static uint8_t send_frame2(cbus_id_type id_type, uint32_t id, cbus_fr_format fr_fmt, uint8_t dlc, uint8_t* dt);
 static void indn1(n_indn_t* info);
 static void indn2(n_indn_t* info);
 static void on_error(n_rslt err_type);
@@ -23,7 +23,7 @@ static uint32_t getms();
 static iso15765_t handler1 =
 {
         .addr_md = N_ADM_FIXED,
-        .can_md = CANBUS_EXTENDED,
+        .fr_id_type = CBUS_ID_T_EXTENDED,
         .clbs.send_frame = send_frame1,
         .clbs.on_error = on_error,
         .clbs.get_ms = getms,
@@ -37,7 +37,7 @@ static iso15765_t handler1 =
 static iso15765_t handler2 =
 {
         .addr_md = N_ADM_FIXED,
-        .can_md = CANBUS_EXTENDED,
+        .fr_id_type = CBUS_ID_T_EXTENDED,
         .clbs.send_frame = send_frame2,
         .clbs.on_error = on_error,
         .clbs.indn = indn2,
@@ -55,7 +55,7 @@ n_req_t frame1 =
         .n_ai.n_ta = 0x02,
         .n_ai.n_ae = 0x00,
         .n_ai.n_tt = N_TA_T_PHY,
-        .ctp_ft = CTP_T_FD,
+        .fr_fmt = CBUS_FR_FRM_FD,
         .msg = {0},
         .msg_sz = 0,
 };
@@ -67,7 +67,7 @@ n_req_t frame2 =
         .n_ai.n_ta = 0x01,
         .n_ai.n_ae = 0x00,
         .n_ai.n_tt = N_TA_T_PHY,
-        .ctp_ft = CTP_T_STD,
+        .fr_fmt = CBUS_FR_FRM_STD,
         .msg = {0},
         .msg_sz = 0,
 };
@@ -94,7 +94,7 @@ static uint32_t getms()
         return GetTickCount();
 }
 
-static void print_frame(uint8_t instance,uint8_t tp_mode, canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt)
+static void print_frame(uint8_t instance,uint8_t tp_mode, cbus_id_type mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt)
 {
         printf(" (%d) - %d | TpMode: [%02x] | FrameType: [%2d]   IdType: [%d]   Id: [%8x]   DLC: [%02d]\t\t", instance, GetTickCount(), tp_mode, mode, ctp_ft, id, dlc);
 
@@ -107,10 +107,6 @@ static void print_frame(uint8_t instance,uint8_t tp_mode, canbus_md mode, uint32
                         printf((i< (s+elements))? "%02x " : "   ", dt[i]);
 		}
                 printf("\t");
-                for (int i = s; i < (s+elements); i++)
-		{
-                        printf("%c ", dt[i]);
-		}
                 if ((s+elements) == (int)dlc)
 		{
                         printf("\n");
@@ -123,22 +119,22 @@ static void print_frame(uint8_t instance,uint8_t tp_mode, canbus_md mode, uint32
 
 }
 
-static uint8_t send_frame1(canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt)
+static uint8_t send_frame1(cbus_id_type id_type, uint32_t id, cbus_fr_format fr_fmt, uint8_t dlc, uint8_t* dt)
 {
-        print_frame(1,handler2.addr_md, mode,  id,  ctp_ft,  dlc,  dt);
+        print_frame(1,handler2.addr_md, id_type,  id, fr_fmt,  dlc,  dt);
 
-        canbus_frame_t frame = { .id = id, .dlc = dlc, .mode = mode, .type=ctp_ft };
+        canbus_frame_t frame = { .id = id, .dlc = dlc, .id_type = id_type, .fr_format= fr_fmt };
         memmove(frame.dt, dt, dlc);
         iso15765_enqueue(&handler2, &frame);
         return 0;
 }
 
 
-static uint8_t send_frame2(canbus_md mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt)
+static uint8_t send_frame2(cbus_id_type id_type, uint32_t id, cbus_fr_format fr_fmt, uint8_t dlc, uint8_t* dt)
 {     
-        print_frame(2, handler1.addr_md, mode, id, ctp_ft, dlc, dt);
+        print_frame(2, handler1.addr_md, id_type, id, fr_fmt, dlc, dt);
         
-        canbus_frame_t frame = { .id = id, .dlc = dlc, .mode = mode, .type = ctp_ft };
+        canbus_frame_t frame = { .id = id, .dlc = dlc, .id_type = id_type,  .fr_format = fr_fmt };
         memmove(frame.dt, dt, dlc);
         iso15765_enqueue(&handler1, &frame);
         return 0;
@@ -164,7 +160,7 @@ static void indn1(n_indn_t* info)
                 v = 'V';
 	}
 	
-        printf("\n- Reception of H1. Msg_sz:[%d] | SZ_CH[%c] MSG_CH[%c]\n",info->msg_sz,s,v);
+        printf("- Reception of H1. Msg_sz:[%d] | SZ_CH[%c] MSG_CH[%c]\n",info->msg_sz,s,v);
    
         if ((v != 'V') || (s != 'V'))
         {
@@ -193,7 +189,7 @@ static void indn2(n_indn_t* info)
                 v = 'V';
 	}
 	
-        printf("\n- Reception of H2. Msg_sz:[%d] | SZ_CH[%c] MSG_CH[%c]\n", info->msg_sz, s, v);
+        printf("- Reception of H2. Msg_sz:[%d] | SZ_CH[%c] MSG_CH[%c]\n", info->msg_sz, s, v);
        
         if ((v != 'V') || (s != 'V'))
         {
