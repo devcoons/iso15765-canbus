@@ -1,4 +1,7 @@
-﻿#include <stdio.h>
+﻿//#define ISO16765Example
+#ifdef ISO16765Example
+
+#include <stdio.h>
 #include <stdlib.h>
 #include "iso15765_2.h"
 #include <windows.h>
@@ -227,4 +230,4 @@ int main()
         }
         return 0;
 }
-
+#endif
