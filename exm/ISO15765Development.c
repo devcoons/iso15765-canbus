@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "iso15765_2.h"
+#include "lib_iso15765.h"
 #include <windows.h>
 #include <sysinfoapi.h>
 #include <conio.h>
