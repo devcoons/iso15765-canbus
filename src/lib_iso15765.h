@@ -57,7 +57,7 @@ SOFTWARE.
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "lib_iqueue.h"
+#include "lib-iqueue/lib_iqueue.h"
 
 /******************************************************************************
  * Enumerations, structures & Variables
