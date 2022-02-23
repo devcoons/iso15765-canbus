@@ -1,3 +1,0 @@
-[submodule "src/lib-iqueue"]
-	path = src/lib-iqueue
-	url = https://github.com/devcoons/stm32-lib-iqueue
