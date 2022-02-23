@@ -57,7 +57,7 @@ SOFTWARE.
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "iqueue.h"
+#include "lib_iqueue.h"
 
 /******************************************************************************
  * Enumerations, structures & Variables
@@ -65,7 +65,8 @@ SOFTWARE.
 
 /* --- CANTP Mode - Frame Type (ref:                     ) ----------------- */
 
-#ifndef cbus_fr_format
+#ifndef CBUS_FR_FORMAT
+#define CBUS_FR_FORMAT
 typedef enum
 {
 	CBUS_FR_FRM_STD = 0x01,		/* Standard CANBUS */
@@ -75,7 +76,8 @@ typedef enum
 
 /* --- CANBus Mode [ID Type] (ref: iso15765-2 p.8) -------==---------------- */
 
-#ifndef cbus_id_type
+#ifndef CBUS_ID_TYPE
+#define CBUS_ID_TYPE
 typedef enum
 {
 	CBUS_ID_T_STANDARD = 0x04U,	/* 11bits CAN Identifier */
@@ -86,6 +88,7 @@ typedef enum
 /* --- CANBus Frame (ref: iso15765-2 p.) ----------------------------------- */
 
 #ifndef CANBUS_FRAME
+#define CANBUS_FRAME
 typedef struct
 {
 	uint32_t id;		/* CAN Frame Id */
