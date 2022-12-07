@@ -65,7 +65,6 @@ i_status iqueue_init(iqueue_t* _queue, int _max_elements, size_t _element_size, 
 	return I_ERROR;
 }
 
-
 volatile void* iqueue_get_next_enqueue(iqueue_t* _queue)
 {
 	return _queue->next;
