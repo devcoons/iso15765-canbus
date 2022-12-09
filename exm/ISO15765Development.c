@@ -1,4 +1,4 @@
-﻿//#define ISO16765Example
+//#define ISO16765Example
 #ifdef ISO16765Example
 
 #include <stdio.h>
@@ -58,7 +58,7 @@ n_req_t frame1 =
         .n_ai.n_ta = 0x02,
         .n_ai.n_ae = 0x00,
         .n_ai.n_tt = N_TA_T_PHY,
-        .fr_fmt = CBUS_FR_FRM_FD,
+        .fr_fmt = CBUS_FR_FRM_STD,
         .msg = {0},
         .msg_sz = 0,
 };
@@ -92,9 +92,11 @@ static void rand_string(char* str, size_t size)
         }
 
 }
+
+
 static uint32_t getms()
 {
-        return GetTickCount();
+          return GetTickCount();;
 }
 
 static void print_frame(uint8_t instance,uint8_t tp_mode, cbus_id_type mode, uint32_t id, uint8_t ctp_ft, uint8_t dlc, uint8_t* dt)
@@ -226,7 +228,7 @@ int main()
         {
                 iso15765_process(&handler1);
                 iso15765_process(&handler2);
-                Sleep(5);
+              
         }
         return 0;
 }
