@@ -658,7 +658,7 @@ static n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 		memset(&ih->in, 0, sizeof(n_iostream_t));
 		ih->in.last_upd.n_cr = 0;
 		//	ih->in.sts = N_S_IDLE;
-		return N_UNE_PDU;
+		return N_OK;
 	}
 	/* if we reach the max CF counter, then we send a FC frame */
 	if(ih->config.bs != 0)
