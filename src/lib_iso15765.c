@@ -700,7 +700,9 @@ static n_rslt process_in_fc(iso15765_t* ih, canbus_frame_t* frame)
 		* the reception and (if not WF overflow) update the Bs time */
 		ih->out.wf_cnt += 1;
 		if (check_max_wf_capacity(ih) != N_WFT_OVRN)
-			return N_OK;
+		{
+			return N_OK;			
+		}
 		ih->out.last_upd.n_bs = ih->clbs.get_ms();
 		rslt = N_WFT_OVRN;
 		break;
@@ -787,8 +789,10 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		ih->out.pdu.sz = ih->out.msg_sz;
 
 		if (n_pdu_pack(ih->addr_md, &ih->out.pdu, &id, ih->out.msg) != N_OK)
+		{
 			goto iso15765_process_out_cfm;
-
+		}
+			
 		rslt = ih->clbs.send_frame(ih->fr_id_type, id, ih->out.fr_fmt, n_get_closest_can_dl(ih->out.pdu.sz + n_get_dt_offset(ih->addr_md, N_PCI_T_SF, ih->out.pdu.sz), ih->out.fr_fmt), ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
 		goto iso15765_process_out_cfm;
 		break;
@@ -801,7 +805,9 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		ih->out.pdu.sz = ih->out.fr_fmt == CBUS_FR_FRM_STD ? ((ih->addr_md & 0x01) == 0 ? 6 : 5) : ((ih->addr_md & 0x01) == 0 ? 62 : 61);
 		ih->out.msg_pos = ih->out.pdu.sz;
 		if (n_pdu_pack(ih->addr_md, &ih->out.pdu, &id, ih->out.msg) != N_OK)
+		{
 			goto iso15765_process_out_cfm;
+		}
 		ih->out.cf_cnt = 1;
 
 		/* after this frame we expect a Flow Control then assign the correct flag before the
@@ -814,8 +820,10 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 	case N_PCI_T_CF:
 		/* if the minimun difference between transmissions is not reached then skip */
 		if ((ih->out.last_upd.n_cs + ih->config.stmin) > ih->clbs.get_ms())
+		{
 			return N_OK;
-
+		}
+			
 		/* Increase the sequence number of the frame and the CF counter of the stream
 		* and then pack the PDU to a CANBus frame */
 		ih->out.pdu.n_pci.sn = ih->out.cf_cnt;
@@ -834,7 +842,10 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		}
 
 		if (n_pdu_pack(ih->addr_md, &ih->out.pdu, &id, &ih->out.msg[ih->out.msg_pos]) != N_OK)
+		{
 			goto iso15765_process_out_cfm;
+		}
+			
 		/* Increase the position which indicates the remaining data in the inbound buffer */
 		ih->out.msg_pos += ih->out.pdu.sz;
 
@@ -850,7 +861,9 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		rslt = ih->clbs.send_frame(ih->fr_id_type, id, ih->out.fr_fmt, n_get_closest_can_dl(ih->out.pdu.sz + of1, ih->out.fr_fmt), ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
 		ih->out.last_upd.n_cs = ih->clbs.get_ms();
 		if (ih->out.msg_pos >= ih->out.msg_sz)
+		{
 			goto iso15765_process_out_cfm;
+		}
 		return N_OK;
 
 	default:
