@@ -639,8 +639,8 @@ static n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 	}
 
 	/* Increase the CF counter and check if the reception sequence is ok */
-	ih->in.cf_cnt = ih->in.cf_cnt + 1 > 0x0F ? 1 : ih->in.cf_cnt + 1;
-	if (ih->in.cf_cnt != ih->in.pdu.n_pci.sn)
+	ih->in.cf_cnt = ih->in.cf_cnt + 1 > 0xFF ? 0 : ih->in.cf_cnt + 1;
+	if ((ih->in.cf_cnt & 0x0f) != ih->in.pdu.n_pci.sn)
 	{
 		rslt = N_INV_SEQ_NUM;
 		goto in_cf_error;
@@ -663,8 +663,9 @@ static n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
 	/* if we reach the max CF counter, then we send a FC frame */
 	if(ih->config.bs != 0)
 	{
-		if ((ih->in.cf_cnt % ih->config.bs)==0)
+		if (ih->in.cf_cnt == ih->config.bs)
 		{
+			ih->in.cf_cnt = 0;
 			send_N_PCI_T_FC(ih);
 		}
 	}
@@ -826,8 +827,8 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 			
 		/* Increase the sequence number of the frame and the CF counter of the stream
 		* and then pack the PDU to a CANBus frame */
-		ih->out.pdu.n_pci.sn = ih->out.cf_cnt;
-		ih->out.cf_cnt = ih->out.cf_cnt == 0xF ? 1 : ih->out.cf_cnt + 1;
+		ih->out.pdu.n_pci.sn = ih->out.cf_cnt & 0x0F;
+		ih->out.cf_cnt = ih->out.cf_cnt == 0xFF ? 0 : ih->out.cf_cnt + 1;
 		if (ih->out.fr_fmt == CBUS_FR_FRM_STD)
 		{
 			uint8_t max_payload = (ih->addr_md & 0x01) == 0 ? 7 : 6;
