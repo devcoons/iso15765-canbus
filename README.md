@@ -184,7 +184,7 @@ We would love you to contribute to `iso15765-canbus`, pull requests are welcome!
 
 ## Support
 
-Support me maintain this project https://paypal.me/iikem
+Support this project though https://paypal.me/iikem or https://github.com/sponsors/devcoons
 
 ## License
 This project is released under the MIT License
