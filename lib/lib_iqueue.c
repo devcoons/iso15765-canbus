@@ -51,11 +51,11 @@
 * Definition  | Public Functions
 ******************************************************************************/
 
-i_status iqueue_init(iqueue_t* _queue, int _max_elements, size_t _element_size, void* _storage)
+i_status iqueue_init(iqueue_t* _queue, uint32_t _max_elements, size_t _element_size, void* _storage)
 {
-	if (_queue != NULL)
+	if (_queue != (void*)NULL)
 	{
-		memset(_storage, 0x00, _element_size * _max_elements);
+		memset(_storage, 0x00, _element_size * (size_t)_max_elements);
 		_queue->element_size = _element_size;
 		_queue->max_elements = _max_elements;
 		_queue->first = 0;
@@ -66,7 +66,7 @@ i_status iqueue_init(iqueue_t* _queue, int _max_elements, size_t _element_size, 
 	return I_ERROR;
 }
 
-volatile void* iqueue_get_next_enqueue(iqueue_t* _queue)
+void* iqueue_get_next_enqueue(iqueue_t* _queue)
 {
 	return (void*)_queue->next;
 }

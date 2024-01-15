@@ -87,11 +87,11 @@ typedef enum
 
 typedef struct
 {
-	volatile void* storage;
-	volatile uintptr_t first;
-	volatile uintptr_t next;
-	volatile size_t element_size;
-	volatile uint32_t max_elements;
+	void* storage;
+	uintptr_t first;
+	uintptr_t next;
+	size_t element_size;
+	uint32_t max_elements;
 }
 iqueue_t;
 
@@ -99,12 +99,12 @@ iqueue_t;
 * Declaration | Public Functions
 ******************************************************************************/
 
-i_status iqueue_init(iqueue_t* _queue, int _max_elements, size_t _element_size, void* _storage);
+i_status iqueue_init(iqueue_t* _queue, uint32_t _max_elements, size_t _element_size, void* _storage);
 i_status iqueue_enqueue(iqueue_t* _queue, void* _element);
 i_status iqueue_dequeue(iqueue_t* _queue, void* _element);
 i_status iqueue_size(iqueue_t* _queue, size_t* _size);
 i_status iqueue_advance_next(iqueue_t* _queue);
-volatile void* iqueue_get_next_enqueue(iqueue_t* _queue);
+void* iqueue_get_next_enqueue(iqueue_t* _queue);
 void* iqueue_dequeue_fast(iqueue_t* _queue);
 
 /******************************************************************************
