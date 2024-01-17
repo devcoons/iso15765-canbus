@@ -105,9 +105,9 @@ typedef enum
 {
 	N_ADM_UNKN 	= 0x00,	/* Not defined */
 	N_ADM_NORMAL 	= 0x14,	/* Normal Mode */
-	N_ADM_FIXED 	= 0x28,	/* Extended Mode */
+	N_ADM_FIXED 	= 0x28,	/* Fixed Mode */
 	N_ADM_MIXED11 	= 0x35,	/* Mixed 11bits ID Mode */
-	N_ADM_EXTENDED 	= 0x45,	/* Fixed Mode */
+	N_ADM_EXTENDED 	= 0x45,	/* Extended Mode */
 	N_ADM_MIXED29 	= 0x59	/* Mixed 29bits ID Mode */
 }addr_md;
 
