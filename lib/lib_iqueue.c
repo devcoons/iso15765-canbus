@@ -116,14 +116,22 @@ i_status iqueue_dequeue(iqueue_t* _queue, void* _element)
 
 void* iqueue_dequeue_fast(iqueue_t* _queue)
 {
-	if (_queue->first != 0)
-	{
-		uintptr_t x = _queue->first;
-		_queue->first = _queue->first + _queue->element_size == (uintptr_t)_queue->storage + (_queue->element_size * _queue->max_elements)
-			? (uintptr_t)_queue->storage : _queue->first + _queue->element_size;
-		_queue->first = _queue->first == _queue->next ? 0 : _queue->first;
-		return (void*)x;
+	if (_queue == NULL) {
+		return NULL;
 	}
+
+	if (_queue->first != 0U) {
+		void* ret_ptr = (void*)_queue->first;
+
+		uintptr_t storage_end = (uintptr_t)_queue->storage + (_queue->element_size * _queue->max_elements);
+		uintptr_t next_first = _queue->first + _queue->element_size;
+
+		_queue->first = (next_first == storage_end) ? (uintptr_t)_queue->storage : next_first;
+		_queue->first = (_queue->first == _queue->next) ? 0U : _queue->first;
+
+		return ret_ptr;
+	}
+
 	return NULL;
 }
 
