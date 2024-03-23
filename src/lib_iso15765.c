@@ -247,44 +247,55 @@ inline static n_rslt n_pci_pack(addr_md mode, n_pdu_t* n_pdu, const uint8_t* dt)
 /*
  * Convert the PCI from the CANBus Frame
  */
-inline  static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uint8_t* dt)
+inline static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uint8_t* dt)
 {
-	n_rslt result = N_ERROR;
+    n_rslt result = N_ERROR;
 
-	if (n_pdu != NULL && dt != NULL)
-	{
-		uint8_t offs = (mode & 0x01);
-		n_pdu->n_pci.pt = (dt[0 + offs] & 0xF0) >> 4;
+    if ((n_pdu != NULL) && (dt != NULL))
+    {
+        uint8_t offs = (uint8_t)(mode & 0x01U); // Make use and purpose of 'offs' explicit
 
-		switch (n_pdu->n_pci.pt)
-		{
-		case N_PCI_T_SF:
-			n_pdu->n_pci.dl = dlc <= 8 ? (dt[0 + offs] & 0x0F) : (dt[1 + offs]);
-			result = N_OK;
-			break;
-		case N_PCI_T_CF:
-			n_pdu->n_pci.sn = (dt[0 + offs] & 0x0F);
-			n_pdu->sz = dlc - (1 + offs);
-			result = N_OK;
-			break;
-		case N_PCI_T_FF:
-			n_pdu->n_pci.dl = (dt[0 + offs] & 0x0F) << 8 | dt[1 + offs];
-			n_pdu->sz = dlc - (2 + offs);
-			result = N_OK;
-			break;
-		case N_PCI_T_FC:
-			n_pdu->n_pci.fs = dt[0 + offs] & 0x0F;
-			n_pdu->n_pci.bs = dt[1 + offs];
-			n_pdu->n_pci.st = dt[2 + offs];
-			n_pdu->sz = dlc - (2 + offs);
-			result = N_OK;
-			break;
-		default:
-			result = N_ERROR;
-			break;
-		}
-	}
-	return result;
+        // Document the operation's intent clearly to avoid being seen as 'dead code'
+        n_pdu->n_pci.pt = (uint8_t)((dt[offs] & 0xF0U) >> 4U);
+
+        switch (n_pdu->n_pci.pt)
+        {
+            case N_PCI_T_SF:
+                // Conditional operation based on 'dlc', not dead code
+                n_pdu->n_pci.dl = (dlc <= 8U) ? (uint8_t)(dt[offs] & 0x0FU) : dt[1U + offs];
+                result = N_OK;
+                break;
+
+            case N_PCI_T_CF:
+                // Direct assignment, the operation depends on 'dt' content
+                n_pdu->n_pci.sn = (uint8_t)(dt[offs] & 0x0FU);
+                n_pdu->sz = dlc - (1U + offs);
+                result = N_OK;
+                break;
+
+            case N_PCI_T_FF:
+                // Combine two bytes into a larger value, clearly intentional
+                n_pdu->n_pci.dl = ((uint16_t)(dt[offs] & 0x0FU) << 8U) | dt[1U + offs];
+                n_pdu->sz = dlc - (2U + offs);
+                result = N_OK;
+                break;
+
+            case N_PCI_T_FC:
+                // Sequential assignments based on protocol, clearly used
+                n_pdu->n_pci.fs = (uint8_t)(dt[offs] & 0x0FU);
+                n_pdu->n_pci.bs = dt[1U + offs];
+                n_pdu->n_pci.st = dt[2U + offs];
+                n_pdu->sz = dlc - (3U + offs); // Adjust for correct data length calculation
+                result = N_OK;
+                break;
+
+            default:
+                result = N_ERROR;
+                break;
+        }
+    }
+
+    return result;
 }
 
 /*
@@ -360,50 +371,51 @@ inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
  */
 inline static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint8_t* dt)
 {
-	if ((dt == NULL) || (id == NULL))
-	{
-		return N_ERROR;
-	}
+    if ((dt == NULL) || (id == NULL))
+    {
+        return N_ERROR;
+    }
 
-	switch (mode)
-	{
-	case N_ADM_EXTENDED:
-		n_pdu->dt[0] = n_pdu->n_ai.n_ta;
-	case N_ADM_NORMAL:
-		*id = 0x80
-			| n_pdu->n_ai.n_pr << 8
-			| n_pdu->n_ai.n_ta << 3
-			| n_pdu->n_ai.n_sa
-			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0x40U : 0x00U);
-		break;
-	case N_ADM_MIXED29:
-		*id = n_pdu->n_ai.n_pr << 26
-			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0xCE : 0xCD) << 16
-			| n_pdu->n_ai.n_ta << 8
-			| n_pdu->n_ai.n_sa;
-		n_pdu->dt[0] = n_pdu->n_ai.n_ae;
-		break;
-	case N_ADM_FIXED:
-		*id = n_pdu->n_ai.n_pr << 26
-			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0xDA : 0xDB) << 16
-			| n_pdu->n_ai.n_ta << 8
-			| n_pdu->n_ai.n_sa;
-		break;
-	case N_ADM_MIXED11:
-		*id = 0x80
-			| n_pdu->n_ai.n_pr << 8
-			| n_pdu->n_ai.n_ta << 3
-			| n_pdu->n_ai.n_sa
-			| (n_pdu->n_ai.n_tt == N_TA_T_PHY ? 0x40U : 0x00U);
-		n_pdu->dt[0] = n_pdu->n_ai.n_ae;
-		break;
-	default:
-		return N_ERROR;
-		break;
-	}
+    switch (mode)
+    {
+        case N_ADM_EXTENDED:
+            n_pdu->dt[0] = n_pdu->n_ai.n_ta;
+            /* Fall through intentionally to N_ADM_NORMAL */
+            /* Falls through */
+        case N_ADM_NORMAL:
+            *id = 0x80U
+                | (n_pdu->n_ai.n_pr << 8)
+                | (n_pdu->n_ai.n_ta << 3)
+                | n_pdu->n_ai.n_sa
+                | ((n_pdu->n_ai.n_tt == N_TA_T_PHY) ? 0x40U : 0x00U);
+            break;
+        case N_ADM_MIXED29:
+            *id = (n_pdu->n_ai.n_pr << 26) 
+                | ((n_pdu->n_ai.n_tt == N_TA_T_PHY) ? 0xCEU : 0xCDU) << 16
+                | (n_pdu->n_ai.n_ta << 8)
+                | n_pdu->n_ai.n_sa;
+            n_pdu->dt[0] = n_pdu->n_ai.n_ae;
+            break;
+        case N_ADM_FIXED:
+            *id = (n_pdu->n_ai.n_pr << 26)
+                | ((n_pdu->n_ai.n_tt == N_TA_T_PHY) ? 0xDAU : 0xDBU) << 16
+                | (n_pdu->n_ai.n_ta << 8)
+                | n_pdu->n_ai.n_sa;
+            break;
+        case N_ADM_MIXED11:
+            *id = 0x80U
+                | (n_pdu->n_ai.n_pr << 8)
+                | (n_pdu->n_ai.n_ta << 3)
+                | n_pdu->n_ai.n_sa
+                | ((n_pdu->n_ai.n_tt == N_TA_T_PHY) ? 0x40U : 0x00U);
+            n_pdu->dt[0] = n_pdu->n_ai.n_ae;
+            break;
+        default:
+            return N_ERROR;
+    }
 
-	n_pci_pack(mode, n_pdu, dt);
-	return n_pdu_pack_dt(mode, n_pdu, dt);
+    n_pci_pack(mode, n_pdu, dt);
+    return n_pdu_pack_dt(mode, n_pdu, dt);
 }
 
 /*
