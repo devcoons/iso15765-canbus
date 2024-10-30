@@ -379,9 +379,13 @@ inline static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint
     switch (mode)
     {
         case N_ADM_EXTENDED:
-            n_pdu->dt[0] = n_pdu->n_ai.n_ta;
-            /* Fall through intentionally to N_ADM_NORMAL */
-            /* Falls through */
+        	*id = 0x80U
+                | (n_pdu->n_ai.n_pr << 8)
+                | (n_pdu->n_ai.n_ae << 3)
+                | (n_pdu->n_ai.n_sa) 
+                | ((n_pdu->n_ai.n_tt == N_TA_T_PHY) ? 0x40U : 0x00U); 
+				n_pdu->dt[0] = n_pdu->n_ai.n_ta;
+			break;
         case N_ADM_NORMAL:
             *id = 0x80U
                 | (n_pdu->n_ai.n_pr << 8)
@@ -453,10 +457,10 @@ inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uin
 		break;
 	case N_ADM_EXTENDED:
 		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x700U) >> 8);
-		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x38U) >> 3);
+		n_pdu->n_ai.n_ae = (uint8_t)((id & 0xF8U) >> 3);
 		n_pdu->n_ai.n_sa = (uint8_t)(id & 0x07U);
 		n_pdu->n_ai.n_tt = (uint8_t)((id & 0x40U) >> 6 == 1 ? N_TA_T_PHY : N_TA_T_FUNC);
-		n_pdu->n_ai.n_ae = dt[0];
+		n_pdu->n_ai.n_ta = dt[0];
 		break;
 	default:
 		return N_UNE_PDU;
