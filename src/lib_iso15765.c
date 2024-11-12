@@ -436,6 +436,7 @@ inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uin
 	{
 	case N_ADM_MIXED11:
 		n_pdu->n_ai.n_ae = dt[0];
+		__attribute__((fallthrough));
 	case N_ADM_NORMAL:
 		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x700U) >> 8);
 		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x38U) >> 3);
@@ -590,7 +591,7 @@ inline static n_rslt check_max_wf_capacity(iso15765_t* ih)
  * Process inbound First Frame reception and report to the upper layer using the
  * indication callback function.
  */
-static n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_ff(iso15765_t* ih)
 {
 	if (ih->in.msg_sz > I15765_MSG_SIZE)
 	{
@@ -621,7 +622,7 @@ static n_rslt process_in_ff(iso15765_t* ih, canbus_frame_t* frame)
  * Process inbound Single Frame reception and report to the upper layer using the
  * indication callback function.
  */
-static n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_sf(iso15765_t* ih)
 {
 	/* If reception is in progress: Terminate the current reception, report an
 	* N_USData.indication, with <N_Result> set to N_UNEXP_PDU, to the upper layer, and
@@ -642,7 +643,7 @@ static n_rslt process_in_sf(iso15765_t* ih, canbus_frame_t* frame)
  * to (ref: iso15765-2 p.26) and if everything is ok copy all the data to the
  * inbound stream buffer and update the reception parameters (CF_cnt,timeouts etc)
  */
-static n_rslt process_in_cf(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_cf(iso15765_t* ih)
 {
 	n_rslt rslt = N_OK;
 
@@ -699,7 +700,7 @@ in_cf_error:
  * Process inbound Flow Control Frames. Outcome depends on the stream status
  * (if it is busy etc) as well as the Flow Control Status.
  */
-static n_rslt process_in_fc(iso15765_t* ih, canbus_frame_t* frame)
+static n_rslt process_in_fc(iso15765_t* ih)
 {
 	n_rslt rslt = N_UNE_PDU;
 
@@ -763,13 +764,13 @@ inline static n_rslt iso15765_process_in(iso15765_t* ih, canbus_frame_t* frame)
 		switch (ih->in.pdu.n_pci.pt)
 		{
 		case N_PCI_T_FC:
-			return process_in_fc(ih, frame);
+			return process_in_fc(ih);
 		case N_PCI_T_CF:
-			return process_in_cf(ih, frame);
+			return process_in_cf(ih);
 		case N_PCI_T_SF:
-			return process_in_sf(ih, frame);
+			return process_in_sf(ih);
 		case N_PCI_T_FF:
-			return process_in_ff(ih, frame);
+			return process_in_ff(ih);
 		default:
 			break;
 		}

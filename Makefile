@@ -1,95 +1,53 @@
-$(info  Starting building process)
+CC = gcc
+CFLAGS = -Wall -Wextra -Ilib -Isrc -Iexm
 
-# include configurations
+SRC_DIR = src
+LIB_DIR = lib
+EXM_DIR = exm
+BUILD_DIR = build
 
-include Makefile.conf
+LIBRARY = $(BUILD_DIR)/libiso15765.a
+LIB_DEP = $(BUILD_DIR)/libiqueue.a
+EXAMPLE = $(BUILD_DIR)/example
 
-$(info  - Makefile.conf loaded)
+SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+LIB_FILES = $(wildcard $(LIB_DIR)/*.c)
+EXM_FILES = $(wildcard $(EXM_DIR)/*.c)
 
-# find project files
+SRC_OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/src_%.o, $(SRC_FILES))
+LIB_OBJS = $(patsubst $(LIB_DIR)/%.c, $(BUILD_DIR)/lib_%.o, $(LIB_FILES))
+EXM_OBJS = $(patsubst $(EXM_DIR)/%.c, $(BUILD_DIR)/exm_%.o, $(EXM_FILES))
 
-H_FILES   :=    $(shell find -L ./$(INC_DIRECTORY) -name '*.h' -exec dirname {} \; | sed 's/ /\\ /g' | uniq)
+# Rules
+all: $(LIBRARY) $(EXAMPLE)
 
-C_FILES   :=    $(shell find ./$(SRC_DIRECTORY) -name '*.c' -type f | sed 's/ /\\ /g' | uniq)
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-CXX_FILES :=    $(shell find ./$(SRC_DIRECTORY) -name '*.cpp' -type f | sed 's/ /\\ /g' | uniq)
+# Compile dependency library
+$(LIB_DEP): $(BUILD_DIR) $(LIB_OBJS)
+	ar rcs $@ $(LIB_OBJS)
 
-O_FILES   :=    $(C_FILES:.c=.o)
+$(BUILD_DIR)/lib_%.o: $(LIB_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-O_FILES   +=    $(CXX_FILES:.cpp=.o)
+# Compile main library
+$(LIBRARY): $(LIB_DEP) $(SRC_OBJS)
+	ar rcs $@ $(SRC_OBJS)
 
-H_FILES   :=    $(notdir  $(H_FILES))
+$(BUILD_DIR)/src_%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-C_FILES   :=    $(notdir  $(C_FILES))
+# Compile example
+$(EXAMPLE): $(LIBRARY) $(LIB_DEP) $(EXM_OBJS)
+	$(CC) $(CFLAGS) $(EXM_OBJS) $(LIBRARY) $(LIB_DEP) -o $@
 
-CXX_FILES :=    $(notdir  $(CXX_FILES))
+$(BUILD_DIR)/exm_%.o: $(EXM_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-INCLUDES  :=    $(H_FILES:%=-I%)
-
-$(info  - Project Files Loaded)
-
-
-ifeq ($(DEBUG),yes)
-
-   $(info  - Debug flag added [makefile.conf DEBUG = yes])
-
-   CFLAGS := -g $(CFLAGS)
-
-endif
-
-
-ifeq ($(IS_LIBRARY),yes)
-
-   $(info  - Set Parameters for Shared Library build process)
-
-   ALL_PARAMETERS = lib$(PROJECT_NAME).so.$(PROJECT_VERSION) clean
-
-   ALL_TYPE = lib$(PROJECT_NAME).so.$(PROJECT_VERSION): $(O_FILES)
-   
-   LIBFLAGS = -shared -Wl,-soname,lib$(PROJECT_NAME).so
-   
-   CFLAGS :=  -fPIC $(CFLAGS)
-   
-   CXXFLAGS := -fPIC $(CXXFLAGS)
-else
-
-   $(info  - Set Parameters for Application build process)
-
-   ALL_PARAMETERS = $(PROJECT_NAME) clean
-
-   ALL_TYPE = $(PROJECT_NAME): $(O_FILES)
-   
-   LIBFLAGS =
-
-endif
-
-# Build Process
-
-all: $(ALL_PARAMETERS)
-
-$(ALL_TYPE)
-	@echo -  [OUTPUT][CXX] $@ @[$(BIN_DIRECTORY)]
-	@$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LIBFLAGS) -o $(BIN_DIRECTORY)/$@ $^ $(LDLIBS)
-
-%.o: %.c
-	@echo -  [CC] $@
-	@$(CC) $(CFLAGS) -c $(INCLUDES) -o $@ $< $(LFLAGS)
-
-%.o: %.cpp
-	@echo -  [CXX] $@
-	@$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $< $(LFLAGS)
-	
-# Clear Objects
-	
 clean:
-	$(info  - Remove all .o [object] files)
-	@find . -name \*.o -type f -delete
-	
-	
-# Clear Objects & Executables 
-	
-cleanall:	
-	$(info  - Remove all .o [object] files)
-	@find . -name \*.o -type f -delete
-	$(info  - Remove all files in $(BIN_DIRECTORY))
-	@find $(BIN_DIRECTORY) -name \*.* -type f -delete
+	rm -rf $(BUILD_DIR)
+
+rebuild: clean all
+
+.PHONY: all clean
