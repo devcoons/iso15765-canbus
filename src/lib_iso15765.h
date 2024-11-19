@@ -406,6 +406,7 @@ typedef struct ALIGNMENT
 
 typedef struct ALIGNMENT
 {
+	n_rslt init_sts; 		/* Instance is initialized correctly */
 	addr_md addr_md;		/* Selected address mode of the TP */
 	cbus_id_type fr_id_type;	/* CANBus frame Id Type */
 	n_iostream_t in;		/* Incoming data stream (reception) */

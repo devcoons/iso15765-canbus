@@ -953,14 +953,18 @@ n_rslt iso15765_init(iso15765_t* instance)
 	memset(&instance->out, 0, sizeof(n_iostream_t));
 	memset(&instance->fl_pdu, 0, sizeof(n_pdu_t));
 	/* init the incoming canbus frame queue(buffer) */
-	iqueue_init(&instance->inqueue,
+	if (iqueue_init(&instance->inqueue,
 		I15765_QUEUE_ELMS,
 		sizeof(canbus_frame_t),
-		instance->inq_buf);
+		instance->inq_buf) != I_OK)
+		{
+			return N_INV;
+		}
 
 	ISO_15675_UNUSED(sgn_chg_cfm);
 
-	return N_OK;
+	instance->init_sts = N_OK;
+	return instance->init_sts;
 }
 
 /*
@@ -970,6 +974,16 @@ n_rslt iso15765_init(iso15765_t* instance)
  */
 n_rslt iso15765_enqueue(iso15765_t* instance, canbus_frame_t* frame)
 {
+	if (instance == NULL)
+	{
+		return N_NULL;
+	}
+
+	if (instance->init_sts != N_OK)
+	{
+		return N_ERROR;
+	}
+
 	return iqueue_enqueue(&instance->inqueue, frame) == I_OK
 		? N_OK : N_BUFFER_OVFLW;
 }
@@ -981,6 +995,16 @@ n_rslt iso15765_enqueue(iso15765_t* instance, canbus_frame_t* frame)
  */
 n_rslt iso15765_send(iso15765_t* instance, n_req_t* frame)
 {
+	if (instance == NULL)
+	{
+		return N_NULL;
+	}
+
+	if (instance->init_sts != N_OK)
+	{
+		return N_ERROR;
+	}
+
 	/* Make sure that there is no transmission in progress */
 	if (instance->out.sts != N_S_IDLE)
 	{
@@ -1009,6 +1033,16 @@ n_rslt iso15765_send(iso15765_t* instance, n_req_t* frame)
  */
 n_rslt iso15765_process(iso15765_t* instance)
 {
+	if (instance == NULL)
+	{
+		return N_NULL;
+	}
+
+	if (instance->init_sts != N_OK)
+	{
+		return N_ERROR;
+	}
+
 	/* First check if a timeout is occured. Only for the inbound stream */
 	n_rslt rslt = process_timeouts(instance);
 	canbus_frame_t frame;
