@@ -521,7 +521,7 @@ inline static void signaling(signal_tp tp, n_iostream_t* strm, void(*cb)(void*),
 inline static n_rslt process_timeouts(iso15765_t* ih)
 {
 	if (ih->out.sts != N_S_TX_WAIT_FC || ih->out.last_upd.n_bs == 0 || ih->config.n_bs == 0
-		|| (ih->out.last_upd.n_bs + ih->config.n_bs) >= ih->clbs.get_ms())
+		|| (ih->clbs.get_ms() - ih->config.n_bs) < ih->out.last_upd.n_bs)
 	{
 		return N_OK;
 	}
@@ -837,7 +837,7 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 
 	case N_PCI_T_CF:
 		/* if the minimun difference between transmissions is not reached then skip */
-		if ((ih->out.last_upd.n_cs + ih->config.stmin) > ih->clbs.get_ms())
+		if ((ih->clbs.get_ms() - ih->config.stmin) < ih->out.last_upd.n_cs)
 		{
 			return N_OK;
 		}
