@@ -1015,6 +1015,21 @@ n_rslt iso15765_send(iso15765_t* instance, n_req_t* frame)
 	{
 		return N_BUFFER_OVFLW;
 	}
+	/* or there is not actual message to be sent */
+	if (frame->msg_sz == 0)
+	{
+		return N_INV_REQ_SZ;
+	}
+	/* check if frame type is correct */
+	if (frame->fr_fmt != CBUS_FR_FRM_STD && frame->fr_fmt != CBUS_FR_FRM_FD)
+	{
+		return N_INV;
+	}
+	/* check if Target Address Type is correct */
+	if (frame->n_ai.n_tt != N_TA_T_PHY && frame->n_ai.n_tt != N_TA_T_FUNC)
+	{
+		return N_INV;
+	}
 
 	/* copy all the info and data to the outbound buffer */
 	instance->out.fr_fmt = frame->fr_fmt;
