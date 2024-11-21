@@ -132,6 +132,13 @@ inline static uint8_t n_get_closest_can_dl(uint8_t size, cbus_fr_format tmt)
  */
 inline static uint8_t n_get_dt_offset(addr_md address, pci_type pci, uint16_t data_size)
 {
+	if (address	!= N_ADM_NORMAL && address != N_ADM_FIXED 
+	&& address != N_ADM_MIXED11 && address != N_ADM_EXTENDED 
+	&& address != N_ADM_MIXED29)
+	{
+		return 0xFF;
+	}
+
 	uint8_t offset = (address & 0x01);
 
 	switch (pci)
@@ -151,7 +158,7 @@ inline static uint8_t n_get_dt_offset(addr_md address, pci_type pci, uint16_t da
 		offset += 3;
 		break;
 	default:
-		offset = 0;
+		offset = 0xFF;
 		break;
 	}
 	return offset;
@@ -263,7 +270,7 @@ inline static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uin
             case N_PCI_T_SF:
                 // Conditional operation based on 'dlc', not dead code
                 n_pdu->n_pci.dl = (dlc <= 8U) ? (uint8_t)(dt[offs] & 0x0FU) : dt[1U + offs];
-                result = N_OK;
+                result = n_pdu->n_pci.dl > dlc ? N_ERROR : N_OK;
                 break;
 
             case N_PCI_T_CF:
@@ -304,29 +311,39 @@ inline static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uin
 inline static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 {
 	n_rslt result = N_ERROR;
+	uint8_t offset = 0xFF;
 
 	if (dt != NULL)
 	{
 		switch (n_pdu->n_pci.pt)
 		{
 		case N_PCI_T_SF:
-			memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_SF, n_pdu->sz)], dt, n_pdu->sz);
+			offset = n_get_dt_offset(mode, N_PCI_T_SF, n_pdu->sz);
 			break;
 		case N_PCI_T_FF:
-			memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_FF, n_pdu->sz)], dt, n_pdu->sz);
+			offset = n_get_dt_offset(mode, N_PCI_T_FF, n_pdu->sz);
 			break;
 		case N_PCI_T_CF:
-			memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_CF, n_pdu->sz)], dt, n_pdu->sz);
+			offset = n_get_dt_offset(mode, N_PCI_T_CF, n_pdu->sz);
 			break;
 		case N_PCI_T_FC:
-			memmove(&n_pdu->dt[n_get_dt_offset(mode, N_PCI_T_FC, n_pdu->sz)], dt, n_pdu->sz);
-
+			offset = n_get_dt_offset(mode, N_PCI_T_FC, n_pdu->sz);
 			break;
-
 		default:
+			offset = 0xFF;
 			break;
 		}
-		result = N_OK;
+
+		if (offset == 0xFF)
+		{
+			result = N_ERROR;
+		}
+		else 
+		{
+			memmove(&n_pdu->dt[offset], dt, n_pdu->sz);
+			result = N_OK;			
+		}
+		
 	}
 	return result;
 }
@@ -337,30 +354,44 @@ inline static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 {
 	n_rslt result = N_ERROR;
+	uint8_t offset = 0xFF;
+	uint16_t sz = 0;
 
 	if ((n_pdu != NULL) && (dt != NULL))
 	{
 		switch (n_pdu->n_pci.pt)
 		{
 		case N_PCI_T_SF:
-			memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_SF, n_pdu->n_pci.dl)], n_pdu->n_pci.dl);
-			result = N_OK;
+			offset = n_get_dt_offset(mode, N_PCI_T_SF, n_pdu->n_pci.dl);
+			sz = n_pdu->n_pci.dl;
 			break;
 		case N_PCI_T_FF:
-			memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_FF, n_pdu->sz)], n_pdu->sz);
-			result = N_OK;
+			offset = n_get_dt_offset(mode, N_PCI_T_FF, n_pdu->n_pci.dl);
+			sz = n_pdu->sz;
 			break;
 		case N_PCI_T_CF:
-			memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_CF, n_pdu->sz)], n_pdu->sz);
-			result = N_OK;
+			offset = n_get_dt_offset(mode, N_PCI_T_CF, n_pdu->n_pci.dl);
+			sz = n_pdu->sz;
 			break;
 		case N_PCI_T_FC:
-			memmove(n_pdu->dt, &dt[n_get_dt_offset(mode, N_PCI_T_FC, n_pdu->sz)], n_pdu->sz);
-			result = N_OK;
+			offset = n_get_dt_offset(mode, N_PCI_T_FC, n_pdu->n_pci.dl);
+			sz = n_pdu->sz;
 			break;
 		default:
+			offset = 0xFF;
+			sz = 0;
 			result = N_ERROR;
 			break;
+		}
+
+		if (offset == 0xFF)
+		{
+			result = N_ERROR;
+		}
+		else 
+		{
+			memmove(n_pdu->dt, &dt[offset], sz);
+			result = N_OK;			
 		}
 	}
 	return result;
@@ -418,8 +449,11 @@ inline static n_rslt n_pdu_pack(addr_md mode, n_pdu_t* n_pdu, uint32_t* id, uint
             return N_ERROR;
     }
 
-    n_pci_pack(mode, n_pdu, dt);
-    return n_pdu_pack_dt(mode, n_pdu, dt);
+    if (n_pci_pack(mode, n_pdu, dt) == N_OK)
+	{
+    	return n_pdu_pack_dt(mode, n_pdu, dt);
+	}
+	return N_ERROR;
 }
 
 /*
@@ -467,10 +501,11 @@ inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uin
 		return N_UNE_PDU;
 	}
 
-	n_pci_unpack(mode, n_pdu, dlc, dt);
-	n_pdu_unpack_dt(mode, n_pdu, dt);
-
-	return N_OK;
+	if (n_pci_unpack(mode, n_pdu, dlc, dt) == N_OK)
+	{
+		return n_pdu_unpack_dt(mode, n_pdu, dt);
+	}
+	return N_ERROR;
 }
 
 /*
