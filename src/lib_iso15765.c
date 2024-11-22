@@ -1009,7 +1009,7 @@ n_rslt iso15765_init(iso15765_t* instance)
  */
 n_rslt iso15765_enqueue(iso15765_t* instance, canbus_frame_t* frame)
 {
-	if (instance == NULL)
+	if (instance == NULL || frame == NULL)
 	{
 		return N_NULL;
 	}
@@ -1018,6 +1018,29 @@ n_rslt iso15765_enqueue(iso15765_t* instance, canbus_frame_t* frame)
 	{
 		return N_ERROR;
 	}
+
+	if (frame->fr_format == CBUS_FR_FRM_STD)
+	{
+		if (frame->dlc == 0 || frame->dlc > 8)
+		{
+			return N_ERROR;
+		}
+	}
+	else if (frame->fr_format == CBUS_FR_FRM_FD)
+	{
+		if (frame->dlc == 0 ||
+			(frame->dlc > 8 && frame->dlc != 12 && frame->dlc != 16 &&
+			frame->dlc != 20 && frame->dlc != 24 && frame->dlc != 32 &&
+			frame->dlc != 48 && frame->dlc != 64))
+		{
+			return N_ERROR;
+		}
+	}
+	else 
+	{
+		return N_ERROR;
+	}
+
 
 	return iqueue_enqueue(&instance->inqueue, frame) == I_OK
 		? N_OK : N_BUFFER_OVFLW;
