@@ -78,6 +78,20 @@ static void cfg_cfm(n_chg_param_cfm_t* info)
 }
 
 /*
+ * Helper function to check if time interval has passed from a given time.
+ */
+inline static n_rslt has_interval_passed(uint32_t current_time, uint32_t last_time, uint32_t interval)
+{
+    if ((interval == 0U) || (interval >= UINT32_MAX))
+    {
+        return N_ERROR;
+    }
+
+    uint32_t elapsed_time = current_time - last_time;
+	return (elapsed_time >= interval) ? N_OK : N_INV;
+}
+
+/*
  * Helper function to find the closest can_dl
  */
 inline static uint8_t n_get_closest_can_dl(uint8_t size, cbus_fr_format tmt)
@@ -555,11 +569,18 @@ inline static void signaling(signal_tp tp, n_iostream_t* strm, void(*cb)(void*),
  */
 inline static n_rslt process_timeouts(iso15765_t* ih)
 {
-	if (ih->out.sts != N_S_TX_WAIT_FC || ih->out.last_upd.n_bs == 0 || ih->config.n_bs == 0
-		|| (ih->clbs.get_ms() - ih->config.n_bs) < ih->out.last_upd.n_bs)
+	if (ih->out.sts != N_S_TX_WAIT_FC || ih->out.last_upd.n_bs == 0 || ih->config.n_bs == 0)
 	{
 		return N_OK;
 	}
+
+	n_rslt timeout = has_interval_passed(ih->clbs.get_ms(),ih->out.last_upd.n_bs,ih->config.n_bs);
+
+	if(timeout == N_INV)
+	{
+		return N_OK;
+	}
+	
 
 	/* if timeout occures then reset the counters and report to the upper layer */
 	ih->out.cf_cnt = 0x0;
@@ -830,7 +851,8 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 
 	uint32_t id;
 	n_rslt rslt = N_ERROR;
-
+	n_rslt timeout = N_ERROR;
+	
 	/* Find the PCI type of the pending outbound stream */
 	ih->out.pdu.n_pci.pt = n_out_frame_type(ih);
 
@@ -872,9 +894,14 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 
 	case N_PCI_T_CF:
 		/* if the minimun difference between transmissions is not reached then skip */
-		if ((ih->clbs.get_ms() - ih->config.stmin) < ih->out.last_upd.n_cs)
+		timeout = has_interval_passed(ih->clbs.get_ms(), ih->out.last_upd.n_cs, ih->config.stmin);
+		if (timeout == N_INV)
 		{
 			return N_OK;
+		} 
+		else if (timeout == N_ERROR)
+		{
+			return N_ERROR;
 		}
 			
 		/* Increase the sequence number of the frame and the CF counter of the stream
