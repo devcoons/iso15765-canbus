@@ -305,7 +305,8 @@ inline static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uin
                 // Sequential assignments based on protocol, clearly used
                 n_pdu->n_pci.fs = (uint8_t)(dt[offs] & 0x0FU);
                 n_pdu->n_pci.bs = dt[1U + offs];
-                n_pdu->n_pci.st = dt[2U + offs];
+                n_pdu->n_pci.st = dt[2U + offs] <= 0x7F ? dt[2U + offs] :
+								  ((dt[2U + offs]>= 0xF1 && dt[2U + offs]<=0xF9) ? 1 : 100);
                 n_pdu->sz = dlc - (3U + offs); // Adjust for correct data length calculation
                 result = N_OK;
                 break;
