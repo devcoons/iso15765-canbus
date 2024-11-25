@@ -894,7 +894,7 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 
 	case N_PCI_T_CF:
 		/* if the minimun difference between transmissions is not reached then skip */
-		timeout = has_interval_passed(ih->clbs.get_ms(), ih->out.last_upd.n_cs, ih->config.stmin);
+		timeout = has_interval_passed(ih->clbs.get_ms(), ih->out.last_upd.n_cs, ih->out.stmin);
 		if (timeout == N_INV)
 		{
 			return N_OK;
