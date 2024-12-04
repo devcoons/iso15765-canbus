@@ -485,7 +485,9 @@ inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uin
 	{
 	case N_ADM_MIXED11:
 		n_pdu->n_ai.n_ae = dt[0];
+#ifdef fallthrough
 		__attribute__((fallthrough));
+#endif
 	case N_ADM_NORMAL:
 		n_pdu->n_ai.n_pr = (uint8_t)((id & 0x700U) >> 8);
 		n_pdu->n_ai.n_ta = (uint8_t)((id & 0x38U) >> 3);
@@ -908,7 +910,7 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 		/* Increase the sequence number of the frame and the CF counter of the stream
 		* and then pack the PDU to a CANBus frame */
 		ih->out.pdu.n_pci.sn = ih->out.cf_cnt & 0x0F;
-		ih->out.cf_cnt = ih->out.cf_cnt == 0xFF ? 0 : ih->out.cf_cnt + 1;
+		
 		if (ih->out.fr_fmt == CBUS_FR_FRM_STD)
 		{
 			uint8_t max_payload = (ih->addr_md & 0x01) == 0 ? 7 : 6;
@@ -932,11 +934,12 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 
 		/* if after this frame we expect a Flow Control then assign the correct flag before the
 		* transmission to avoid any issues and start the timer */
-		if (ih->out.pdu.n_pci.sn == ih->config.bs)
+		if (ih->out.cf_cnt == ih->out.cfg_bs)
 		{
 			ih->out.sts = N_S_TX_WAIT_FC;
 			ih->out.last_upd.n_bs = ih->clbs.get_ms();
 		}
+		ih->out.cf_cnt = ih->out.cf_cnt == 0xFF ? 0 : ih->out.cf_cnt + 1;
 		/* send the canbus frame! */
 		uint8_t of1 = (ih->addr_md & 0x01) == 0 ? 1 : 2;
 		rslt = ih->clbs.send_frame(ih->fr_id_type, id, ih->out.fr_fmt, n_get_closest_can_dl(ih->out.pdu.sz + of1, ih->out.fr_fmt), ih->out.pdu.dt) == 0 ? N_OK : N_ERROR;
