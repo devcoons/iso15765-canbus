@@ -35,7 +35,7 @@ static iso15765_t handler1 = {
     .clbs.get_ms = getms,
     .clbs.indn = indn1,
     .config.stmin = 0x3,
-    .config.bs = 0x0f,
+    .config.bs = 0x2a,
     .config.n_bs = 100,
     .config.n_cr = 3
 };

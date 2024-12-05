@@ -381,6 +381,7 @@ typedef struct ALIGNMENT
 	n_pdu_t pdu;			/* Keep information about the in/out frame in a PDU format */
 	uint8_t cf_cnt;			/* Current block sequence number (ConsecutiveFrame) */
 	uint8_t wf_cnt;			/* Current received wait flow control frames */
+	uint8_t sn_glb;			/* Current Sequence Number of the transmittion */
 	uint8_t cfg_wf;			/* Max supported Wait Flow Control frames */
 	uint8_t stmin;			/* Frames transmission rate */
 	uint8_t cfg_bs;			/* Max. supported block sequence (ConsecutiveFrame) */

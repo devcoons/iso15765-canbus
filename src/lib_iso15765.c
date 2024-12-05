@@ -716,12 +716,13 @@ static n_rslt process_in_cf(iso15765_t* ih)
 
 	/* Increase the CF counter and check if the reception sequence is ok */
 	ih->in.cf_cnt = ih->in.cf_cnt + 1 > 0xFF ? 0 : ih->in.cf_cnt + 1;
-	if ((ih->in.cf_cnt & 0x0f) != ih->in.pdu.n_pci.sn)
+	ih->in.sn_glb = (ih->in.sn_glb + 1) & 0x0F;
+	if (ih->in.sn_glb != ih->in.pdu.n_pci.sn)
 	{
 		rslt = N_INV_SEQ_NUM;
 		goto in_cf_error;
 	}
-
+	
 	/* As long as everything is ok the we copy the frame data to the inbound
 	* stream buffer. Afterwards check if the message size is completed and
 	* signal the user and afterwards reset the inboud stream */
@@ -909,8 +910,9 @@ static n_rslt iso15765_process_out(iso15765_t* ih)
 			
 		/* Increase the sequence number of the frame and the CF counter of the stream
 		* and then pack the PDU to a CANBus frame */
-		ih->out.pdu.n_pci.sn = ih->out.cf_cnt & 0x0F;
-		
+		ih->out.pdu.n_pci.sn = ih->out.sn_glb;
+		ih->out.sn_glb = (ih->out.sn_glb + 1) & 0x0F;
+
 		if (ih->out.fr_fmt == CBUS_FR_FRM_STD)
 		{
 			uint8_t max_payload = (ih->addr_md & 0x01) == 0 ? 7 : 6;
@@ -1125,6 +1127,9 @@ n_rslt iso15765_send(iso15765_t* instance, n_req_t* frame)
 	instance->out.msg_sz = frame->msg_sz;
 	memmove(instance->out.msg, frame->msg, frame->msg_sz);
 	memmove(&instance->out.pdu.n_ai, &frame->n_ai, sizeof(n_ai_t));
+	instance->out.sn_glb = 1;
+	instance->out.cf_cnt = 0;
+	instance->out.wf_cnt = 0;
 	instance->out.sts = N_S_TX_BUSY;
 
 	return N_OK;
