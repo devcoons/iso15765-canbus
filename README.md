@@ -180,11 +180,21 @@ Please check the folder **`exm`** for more examples
 This library is experimental and is still under development. The purpose is to create a complete ISO15765 library with all the described features. Feel free to suggest anything. If you use this library please ref.
 
 ## Contributing
+
 We would love you to contribute to `iso15765-canbus`, pull requests are welcome!
 
 ## Support
 
 Support this project though https://paypal.me/iikem or https://github.com/sponsors/devcoons
 
-## License
-This project is released under the MIT License
+## Licensing Information
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).  
+You can find the full license text in the [LICENSE](./LICENSE) file.
+
+### Commercial Licensing
+
+For commercial use, including proprietary or for-profit applications, you must obtain a separate license.  
+Contact me for commercial licensing at:  
+- GitHub: [https://github.com/devcoons](https://github.com/devcoons)  
+- Email: i_-_-_s@outlook.com
