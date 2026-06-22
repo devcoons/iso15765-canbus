@@ -284,32 +284,60 @@ inline static n_rslt n_pci_unpack(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uin
         switch (n_pdu->n_pci.pt)
         {
             case N_PCI_T_SF:
-                // Conditional operation based on 'dlc', not dead code
-                n_pdu->n_pci.dl = (dlc <= 8U) ? (uint8_t)(dt[offs] & 0x0FU) : dt[1U + offs];
-                result = n_pdu->n_pci.dl > dlc ? N_ERROR : N_OK;
+            {
+                uint8_t hdr = (uint8_t)(1U + offs);
+
+                if (dlc <= 8U)
+                {
+                    if (dlc < hdr)
+                    {
+                        break;
+                    }
+                    n_pdu->n_pci.dl = (uint8_t)(dt[offs] & 0x0FU);
+                }
+                else
+                {
+                    hdr = (uint8_t)(2U + offs);
+                    if (dlc < hdr)
+                    {
+                        break;
+                    }
+                    n_pdu->n_pci.dl = dt[1U + offs];
+                }
+                result = (n_pdu->n_pci.dl == 0U || n_pdu->n_pci.dl > (dlc - hdr)) ? N_ERROR : N_OK;
                 break;
+            }
 
             case N_PCI_T_CF:
-                // Direct assignment, the operation depends on 'dt' content
+                if (dlc < (1U + offs))
+                {
+                    break;
+                }
                 n_pdu->n_pci.sn = (uint8_t)(dt[offs] & 0x0FU);
-                n_pdu->sz = dlc - (1U + offs);
+                n_pdu->sz = (uint16_t)(dlc - (1U + offs));
                 result = N_OK;
                 break;
 
             case N_PCI_T_FF:
-                // Combine two bytes into a larger value, clearly intentional
+                if (dlc < (2U + offs))
+                {
+                    break;
+                }
                 n_pdu->n_pci.dl = ((uint16_t)(dt[offs] & 0x0FU) << 8U) | dt[1U + offs];
-                n_pdu->sz = dlc - (2U + offs);
+                n_pdu->sz = (uint16_t)(dlc - (2U + offs));
                 result = N_OK;
                 break;
 
             case N_PCI_T_FC:
-                // Sequential assignments based on protocol, clearly used
+                if (dlc < (3U + offs))
+                {
+                    break;
+                }
                 n_pdu->n_pci.fs = (uint8_t)(dt[offs] & 0x0FU);
                 n_pdu->n_pci.bs = dt[1U + offs];
                 n_pdu->n_pci.st = dt[2U + offs] <= 0x7F ? dt[2U + offs] :
 								  ((dt[2U + offs]>= 0xF1 && dt[2U + offs]<=0xF9) ? 1 : 127);
-                n_pdu->sz = dlc - (3U + offs); // Adjust for correct data length calculation
+                n_pdu->sz = (uint16_t)(dlc - (3U + offs));
                 result = N_OK;
                 break;
 
@@ -368,7 +396,7 @@ inline static n_rslt n_pdu_pack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 /*
  * Helper function of 'n_pdu_unpack' to use the frame payload.
  */
-inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
+inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t dlc, uint8_t* dt)
 {
 	n_rslt result = N_ERROR;
 	uint8_t offset = 0xFF;
@@ -401,14 +429,15 @@ inline static n_rslt n_pdu_unpack_dt(addr_md mode, n_pdu_t* n_pdu, uint8_t* dt)
 			break;
 		}
 
-		if (offset == 0xFF)
+		if (offset == 0xFF || sz > sizeof(n_pdu->dt)
+			|| (uint16_t)offset + sz > (uint16_t)dlc)
 		{
 			result = N_ERROR;
 		}
-		else 
+		else
 		{
 			memmove(n_pdu->dt, &dt[offset], sz);
-			result = N_OK;			
+			result = N_OK;
 		}
 	}
 	return result;
@@ -522,7 +551,7 @@ inline static n_rslt n_pdu_unpack(addr_md mode, n_pdu_t* n_pdu, uint32_t id, uin
 
 	if (n_pci_unpack(mode, n_pdu, dlc, dt) == N_OK)
 	{
-		return n_pdu_unpack_dt(mode, n_pdu, dt);
+		return n_pdu_unpack_dt(mode, n_pdu, dlc, dt);
 	}
 	return N_ERROR;
 }
@@ -540,11 +569,11 @@ inline static void signaling(signal_tp tp, n_iostream_t* strm, void(*cb)(void*),
 		{
 		case N_INDN:
 			sgn_indn.rslt = sgn_rslt;
-			sgn_indn.msg_sz = msg_sz;
+			sgn_indn.msg_sz = msg_sz > I15765_MSG_SIZE ? I15765_MSG_SIZE : msg_sz;
 			sgn_indn.fr_fmt = strm->fr_fmt;
 			memmove(&sgn_indn.n_ai, &strm->pdu.n_ai, sizeof(n_ai_t));
 			memmove(&sgn_indn.n_pci, &strm->pdu.n_pci, sizeof(n_pci_t));
-			memmove(&sgn_indn.msg, strm->msg, msg_sz);
+			memmove(&sgn_indn.msg, strm->msg, sgn_indn.msg_sz);
 			strm->sts = N_S_IDLE;
 			cb(&sgn_indn);
 			break;
@@ -654,10 +683,12 @@ inline static n_rslt check_max_wf_capacity(iso15765_t* ih)
  */
 static n_rslt process_in_ff(iso15765_t* ih)
 {
-	if (ih->in.msg_sz > I15765_MSG_SIZE)
+	if (ih->in.pdu.n_pci.dl > I15765_MSG_SIZE)
 	{
-		ih->clbs.on_error(N_INV_REQ_SZ);
-		return N_INV_REQ_SZ;
+		ih->fl_pdu.n_pci.fs = N_OVERFLOW;
+		send_N_PCI_T_FC(ih);
+		ih->clbs.on_error(N_OVFLW);
+		return N_OVFLW;
 	}
 	/* If reception is in progress: Terminate the current reception, report an
 	* N_USData.indication, with <N_Result> set to N_UNEXP_PDU, to the upper layer, and
@@ -675,6 +706,7 @@ static n_rslt process_in_ff(iso15765_t* ih)
 	ih->in.cf_cnt = 0;
 	ih->in.wf_cnt = 0;
 	signaling(N_FF_INDN, &ih->in, (void*)ih->clbs.ff_indn, ih->in.msg_sz, N_OK);
+	ih->fl_pdu.n_pci.fs = N_CONTINUE;
 	send_N_PCI_T_FC(ih);
 	return N_OK;
 }
@@ -692,6 +724,11 @@ static n_rslt process_in_sf(iso15765_t* ih)
 	{
 		ih->clbs.on_error(N_UNE_PDU);
 		signaling(N_INDN, &ih->in, (void*)ih->clbs.indn, ih->in.msg_sz, N_UNE_PDU);
+	}
+	if (ih->in.pdu.n_pci.dl > I15765_MSG_SIZE)
+	{
+		ih->clbs.on_error(N_INV_REQ_SZ);
+		return N_INV_REQ_SZ;
 	}
 	memmove(&ih->in.msg[0], ih->in.pdu.dt, ih->in.pdu.n_pci.dl);
 	ih->in.sts = N_S_IDLE;
@@ -728,6 +765,11 @@ static n_rslt process_in_cf(iso15765_t* ih)
 	/* As long as everything is ok the we copy the frame data to the inbound
 	* stream buffer. Afterwards check if the message size is completed and
 	* signal the user and afterwards reset the inboud stream */
+	if (ih->in.msg_pos + ih->in.pdu.sz > I15765_MSG_SIZE)
+	{
+		rslt = N_OVFLW;
+		goto in_cf_error;
+	}
 	memmove(&ih->in.msg[ih->in.msg_pos], ih->in.pdu.dt, ih->in.pdu.sz);
 	ih->in.msg_pos += ih->in.pdu.sz;
 
@@ -745,6 +787,7 @@ static n_rslt process_in_cf(iso15765_t* ih)
 		if (ih->in.cf_cnt == ih->config.bs)
 		{
 			ih->in.cf_cnt = 0;
+			ih->fl_pdu.n_pci.fs = N_CONTINUE;
 			send_N_PCI_T_FC(ih);
 		}
 	}
